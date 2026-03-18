@@ -1,0 +1,10 @@
+# virtual env
+.venv/
+venv/
+
+# model artifacts
+models/
+*.joblib
+
+# external library repo
+external/universal/
