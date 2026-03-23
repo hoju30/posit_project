@@ -5,8 +5,8 @@ Predict per-format relative errors for each extracted loop segment (mixed-precis
 Workflow:
   1) Split input IR into loop segments (default: extract outlined funcs by name)
   2) For each segment, run IR2Vec to get the 300-d program vector
-  3) Concatenate extra features (vec_len/rows/cols/alpha/beta + runtime stats-derived features)
-  4) Run the regression model to predict relative errors vs fp64 for each format
+  3) Concatenate shared features (vec_len/rows/cols/alpha/beta + runtime stats + CFG)
+  4) For each posit format, append format features (n/es) and run the per-format regressor
   5) Optionally pick a per-segment format (mixed precision) and write a JSON plan
 
 This script does NOT rewrite IR. It produces a decision plan you can feed into an LLVM/MLIR pass later.
@@ -27,73 +27,36 @@ import ir2vec
 import joblib
 import numpy as np
 
-from split_loops_and_analyze_cfg import cfg_feature_vector_from_ll_path, split_ir_by_loops
+from error_feature_utils import (
+    RAW_STAT_FIELDS,
+    derived_stats_features,
+    parse_format_name,
+    raw_stats_features,
+)
+from split_loops_and_analyze_cfg import split_ir_by_loops
 
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_DIR = ROOT / "models"
-
-
 def load_ir2vec_vector(ir_path: str) -> np.ndarray:
     init_obj = ir2vec.initEmbedding(ir_path, "fa", "p")
     v = init_obj.getProgramVector()
     return np.asarray(v, dtype=np.float32)
 
 
-def log10p(x: float, eps: float) -> float:
-    return float(np.log10(float(x) + eps))
-
-
-def tail_features(mean: float, std: float, p1: float, p50: float, p99: float, eps: float) -> list[float]:
-    if (
-        float(mean) == 0.0
-        and float(std) == 0.0
-        and float(p1) == 0.0
-        and float(p50) == 0.0
-        and float(p99) == 0.0
-    ):
-        return [0.0] * 12
-
-    std_pos = float(std) if float(std) > 0.0 else 0.0
-    denom = std_pos + eps
-
-    # magnitude-based (posit sweet spot)
-    p1a = abs(float(p1))
-    p50a = abs(float(p50))
-    p99a = abs(float(p99))
-    log_p1 = log10p(p1a, eps)
-    log_p50 = log10p(p50a, eps)
-    log_p99 = log10p(p99a, eps)
-
-    # useed = 2^(2^es), es in {0,1,2}
-    useed_log10 = [np.log10(2.0), np.log10(4.0), np.log10(16.0)]
-    sweet = [log_p50, (log_p99 - log_p1)]
-    for log_useed in useed_log10:
-        upper_excess = max(0.0, log_p99 - log_useed)
-        lower_excess = max(0.0, (-log_useed) - log_p1)
-        sweet.extend([upper_excess, lower_excess])
-
-    return [
-        log10p(std_pos, eps),               # log10(std + eps) (scale)
-        (float(p99) - float(p50)) / denom,  # upper_tail
-        (float(p50) - float(p1)) / denom,   # lower_tail
-        float(mean) / denom,                # standardized_mean
-        *sweet,
-    ]
+def parse_format_features_json(path: str | None) -> dict[str, Any]:
+    if not path:
+        return {}
+    p = Path(path)
+    if not p.exists():
+        raise SystemExit(f"--format-features-json not found: {p}")
+    return json.loads(p.read_text(encoding="utf-8"))
 
 
 @dataclass(frozen=True)
 class RuntimeStats:
-    x_mean: float
-    x_std: float
-    x_p1: float
-    x_p50: float
-    x_p99: float
-    y_mean: float
-    y_std: float
-    y_p1: float
-    y_p50: float
-    y_p99: float
+    x: dict[str, float]
+    y: dict[str, float]
 
 
 @dataclass(frozen=True)
@@ -175,16 +138,8 @@ def stats_from_args(args: argparse.Namespace) -> tuple[ExtraScalars, RuntimeStat
         beta=float(args.beta),
     )
     stats = RuntimeStats(
-        x_mean=float(args.x_mean),
-        x_std=float(args.x_std),
-        x_p1=float(args.x_p1),
-        x_p50=float(args.x_p50),
-        x_p99=float(args.x_p99),
-        y_mean=float(args.y_mean),
-        y_std=float(args.y_std),
-        y_p1=float(args.y_p1),
-        y_p50=float(args.y_p50),
-        y_p99=float(args.y_p99),
+        x={name: float(getattr(args, f"x_{name}")) for name in RAW_STAT_FIELDS},
+        y={name: float(getattr(args, f"y_{name}")) for name in RAW_STAT_FIELDS},
     )
     return extra, stats
 
@@ -236,29 +191,62 @@ def apply_overrides(
 
     def pick_xy(d: dict[str, Any], d2: dict[str, Any], key: str, fallback: float) -> float:
         v = d.get(key, None)
+        if v is None and key == "p01":
+            v = d.get("p1", None)
         if v is None:
             v = d2.get(key, None)
+        if v is None and key == "p01":
+            v = d2.get("p1", None)
         if v is None:
             return fallback
         return float(v)
 
     stats = RuntimeStats(
-        x_mean=pick_xy(x_d, x_def, "mean", base_stats.x_mean),
-        x_std=pick_xy(x_d, x_def, "std", base_stats.x_std),
-        x_p1=pick_xy(x_d, x_def, "p1", base_stats.x_p1),
-        x_p50=pick_xy(x_d, x_def, "p50", base_stats.x_p50),
-        x_p99=pick_xy(x_d, x_def, "p99", base_stats.x_p99),
-        y_mean=pick_xy(y_d, y_def, "mean", base_stats.y_mean),
-        y_std=pick_xy(y_d, y_def, "std", base_stats.y_std),
-        y_p1=pick_xy(y_d, y_def, "p1", base_stats.y_p1),
-        y_p50=pick_xy(y_d, y_def, "p50", base_stats.y_p50),
-        y_p99=pick_xy(y_d, y_def, "p99", base_stats.y_p99),
+        x={name: pick_xy(x_d, x_def, name, base_stats.x.get(name, 0.0)) for name in RAW_STAT_FIELDS},
+        y={name: pick_xy(y_d, y_def, name, base_stats.y.get(name, 0.0)) for name in RAW_STAT_FIELDS},
     )
 
     return extra, stats
 
 
-def build_feature(
+def apply_format_feature_overrides(
+    seg: dict[str, Any],
+    overrides: dict[str, Any],
+    quant_feat_names: list[str],
+    format_names: list[str],
+) -> dict[str, dict[str, float]]:
+    if not overrides:
+        return {fmt: {name: 0.0 for name in quant_feat_names} for fmt in format_names}
+
+    if "default" not in overrides and "segments" not in overrides:
+        return {
+            str(fmt): {name: float(overrides.get(str(fmt), {}).get(name, 0.0)) for name in quant_feat_names}
+            for fmt in format_names
+        }
+
+    seg_id = str(seg.get("segment_id", ""))
+    fn = str(seg.get("func_name", ""))
+    segs = overrides.get("segments", {})
+    seg_spec = {}
+    if isinstance(segs, dict):
+        if seg_id in segs:
+            seg_spec = segs[seg_id]
+        elif fn in segs:
+            seg_spec = segs[fn]
+    default = overrides.get("default", {}) if isinstance(overrides.get("default", {}), dict) else {}
+
+    out: dict[str, dict[str, float]] = {}
+    for fmt in format_names:
+        fmt_default = default.get(str(fmt), {}) if isinstance(default.get(str(fmt), {}), dict) else {}
+        fmt_seg = seg_spec.get(str(fmt), {}) if isinstance(seg_spec.get(str(fmt), {}), dict) else {}
+        out[str(fmt)] = {
+            name: float(fmt_seg.get(name, fmt_default.get(name, 0.0)))
+            for name in quant_feat_names
+        }
+    return out
+
+
+def build_shared_feature(
     ir_vec: np.ndarray,
     ir_path_for_cfg: str | None,
     extra: ExtraScalars,
@@ -271,9 +259,8 @@ def build_feature(
     rows_scale = float(meta.get("rows_scale", 1.0))
     cols_scale = float(meta.get("cols_scale", 1.0))
     vec_lens = meta.get("vec_lens", [])
-    eps = float(meta.get("eps", 1e-30))
     cfg_dim = int(meta.get("cfg_dim", 0))
-    extra_dim = int(meta.get("extra_dim", 5 + 24 + cfg_dim))
+    shared_feat_dim = int(meta.get("shared_feat_dim", 5 + 2 * len(RAW_STAT_FIELDS) + cfg_dim))
 
     vec_val = float(extra.vec_len)
     if vec_lens:
@@ -287,32 +274,35 @@ def build_feature(
         float(extra.beta),
     ]
     stats_feats = (
-        tail_features(stats.x_mean, stats.x_std, stats.x_p1, stats.x_p50, stats.x_p99, eps)
-        + tail_features(stats.y_mean, stats.y_std, stats.y_p1, stats.y_p50, stats.y_p99, eps)
+        raw_stats_features(stats.x)
+        + raw_stats_features(stats.y)
+        + derived_stats_features(stats.x)
+        + derived_stats_features(stats.y)
     )
 
-    if cfg_dim > 0 and ir_path_for_cfg:
-        try:
-            cfg_feats, _ = cfg_feature_vector_from_ll_path(ir_path_for_cfg, scc_mode="auto")
-            cfg_feats = np.asarray(cfg_feats, dtype=np.float32).tolist()
-        except Exception:
-            cfg_feats = [0.0] * cfg_dim
-    else:
-        cfg_feats = []
+    cfg_feats = []
 
-    extra_tail_len = extra_dim - len(scalars) - len(stats_feats) - len(cfg_feats)
+    extra_tail_len = shared_feat_dim - len(scalars) - len(stats_feats) - len(cfg_feats)
     if extra_tail_len < 0:
         extra_tail_len = 0
     extra_tail = [0.0] * extra_tail_len
 
     feat = np.concatenate(
         [v.flatten(), np.asarray(scalars + stats_feats + cfg_feats + extra_tail, dtype=np.float32)]
-    ).reshape(1, -1)
+    )
     return feat
 
 
+def build_format_feature(shared_feat: np.ndarray, n: int, es: int, meta: dict[str, Any]) -> np.ndarray:
+    format_feat_dim = int(meta.get("format_feat_dim", 2))
+    format_feats = [float(n) / 32.0, float(es) / 2.0]
+    if format_feat_dim > len(format_feats):
+        format_feats.extend([0.0] * (format_feat_dim - len(format_feats)))
+    return np.concatenate([shared_feat, np.asarray(format_feats[:format_feat_dim], dtype=np.float32)]).reshape(1, -1)
+
+
 def pick_format(
-    target_names: list[str],
+    format_names: list[str],
     preds: np.ndarray,
     *,
     strategy: str,
@@ -320,32 +310,46 @@ def pick_format(
 ) -> str:
     # prefer smaller storage for "min_bits_under_tol"
     bits: dict[str, int] = {}
-    for name in target_names:
+    for name in format_names:
         if name.startswith("posit_"):
             try:
                 bits[name] = int(name.split("_")[1])
             except Exception:
                 bits[name] = 9999
-        elif name == "fp32":
-            bits[name] = 32
-        elif name == "fp16":
-            bits[name] = 16
         else:
             bits[name] = 9999
 
     if strategy == "min_error":
         idx = int(np.argmin(preds))
-        return target_names[idx]
+        return format_names[idx]
 
     if strategy == "min_bits_under_tol":
-        candidates = [(bits[n], float(p), n) for n, p in zip(target_names, preds) if float(p) <= tol]
+        candidates = [(bits[n], float(p), n) for n, p in zip(format_names, preds) if float(p) <= tol]
         if candidates:
             candidates.sort(key=lambda t: (t[0], t[1]))
             return candidates[0][2]
         idx = int(np.argmin(preds))
-        return target_names[idx]
+        return format_names[idx]
 
     raise SystemExit(f"Unknown --pick strategy: {strategy}")
+
+
+def apply_selective_calibration(preds: np.ndarray, format_names: list[str], bundle: dict[str, Any]) -> np.ndarray:
+    calib = bundle.get("calibration")
+    if not calib or not bool(calib.get("enabled", False)):
+        return preds
+    if str(calib.get("type")) != "log_linear_selective":
+        return preds
+    out = np.asarray(preds, dtype=np.float64).copy()
+    for i, name in enumerate(format_names):
+        spec = calib.get("formats", {}).get(str(name), {})
+        if not bool(spec.get("use_calibrated", False)):
+            continue
+        slope = float(spec.get("slope", 1.0))
+        intercept = float(spec.get("intercept", 0.0))
+        pred_log = np.log10(max(float(out[i]), 0.0) + 1e-30)
+        out[i] = max((10.0 ** (pred_log * slope + intercept)) - 1e-30, 0.0)
+    return out
 
 
 def main() -> None:
@@ -391,21 +395,23 @@ def main() -> None:
     p.add_argument("--beta", type=float, default=0.0)
 
     # Global runtime stats (applied to all segments unless overridden)
-    p.add_argument("--x-mean", type=float, default=0.0)
-    p.add_argument("--x-std", type=float, default=0.0)
-    p.add_argument("--x-p1", type=float, default=0.0)
-    p.add_argument("--x-p50", type=float, default=0.0)
-    p.add_argument("--x-p99", type=float, default=0.0)
-    p.add_argument("--y-mean", type=float, default=0.0)
-    p.add_argument("--y-std", type=float, default=0.0)
-    p.add_argument("--y-p1", type=float, default=0.0)
-    p.add_argument("--y-p50", type=float, default=0.0)
-    p.add_argument("--y-p99", type=float, default=0.0)
+    for prefix in ("x", "y"):
+        for name in RAW_STAT_FIELDS:
+            flag_name = name.replace("_", "-")
+            flags = [f"--{prefix}-{flag_name}", f"--{prefix}-{name}"]
+            if name == "p01":
+                flags.append(f"--{prefix}-p1")
+            p.add_argument(*flags, dest=f"{prefix}_{name}", type=float, default=0.0)
 
     p.add_argument(
         "--stats-json",
         default=None,
         help="optional per-segment overrides JSON (keys: default + segments{segment_id|func_name: {...}})",
+    )
+    p.add_argument(
+        "--format-features-json",
+        default=None,
+        help="optional per-segment/per-format quant feature JSON",
     )
 
     p.add_argument(
@@ -470,12 +476,17 @@ def main() -> None:
         print("[info] segments      :", len(segments), flush=True)
 
     overrides = parse_stats_json(args.stats_json)
+    format_feature_overrides = parse_format_features_json(args.format_features_json)
     base_extra, base_stats = stats_from_args(args)
 
     bundle = joblib.load(args.model)
-    reg = bundle["model"]
-    target_names = bundle["target_names"]
+    reg = bundle.get("model")
+    reg_map = bundle.get("models")
+    format_names = bundle.get("format_names")
+    if format_names is None:
+        raise SystemExit("model missing format_names; retrain with per-format regression dataset")
     meta = bundle.get("meta", None) or {}
+    quant_feat_names = list(meta.get("quant_feat_names", []))
 
     y_transform = bundle.get("y_transform")
     y_is_log10 = bool(y_transform and y_transform.get("type") == "log10")
@@ -491,17 +502,40 @@ def main() -> None:
             print(f"[info] segment {idx+1}/{len(segments)}: {fn}", flush=True)
         ir_vec = load_ir2vec_vector(str(seg_path))
         extra, stats = apply_overrides(seg, base_extra, base_stats, overrides)
-        feat = build_feature(ir_vec, str(seg_path), extra, stats, meta)
+        shared_feat = build_shared_feature(ir_vec, str(seg_path), extra, stats, meta)
+        format_feature_map = apply_format_feature_overrides(
+            seg, format_feature_overrides, quant_feat_names, list(format_names)
+        )
+        feat_mat = []
+        for name in format_names:
+            n, es = parse_format_name(str(name))
+            feat = build_format_feature(shared_feat, n, es, meta).reshape(-1)
+            if quant_feat_names:
+                quant_vals = np.asarray(
+                    [float(format_feature_map.get(str(name), {}).get(qname, 0.0)) for qname in quant_feat_names],
+                    dtype=np.float32,
+                )
+                feat[-len(quant_feat_names):] = quant_vals
+            feat_mat.append(feat)
+        feat_mat_np = np.stack(feat_mat, axis=0)
 
-        pred = reg.predict(feat)[0]  # log10-space if trained that way
+        if reg_map:
+            pred = np.asarray(
+                [reg_map[str(name)].predict(feat_mat_np[i : i + 1])[0] for i, name in enumerate(format_names)]
+            )
+        elif reg is not None:
+            pred = reg.predict(feat_mat_np)
+        else:
+            raise SystemExit("model file missing both 'model' and 'models'")
         pred = np.asarray(pred, dtype=np.float64)
         if y_is_log10:
             pred = (10.0 ** pred) - y_eps
+        pred = apply_selective_calibration(pred, list(format_names), bundle)
 
-        chosen = pick_format(target_names, pred, strategy=str(args.pick), tol=float(args.tol))
-        chosen_pred = float(pred[list(target_names).index(chosen)])
+        chosen = pick_format(format_names, pred, strategy=str(args.pick), tol=float(args.tol))
+        chosen_pred = float(pred[list(format_names).index(chosen)])
 
-        pred_dict = {str(n): float(v) for n, v in zip(target_names, pred)}
+        pred_dict = {str(n): float(v) for n, v in zip(format_names, pred)}
         per_seg.append(
             {
                 "segment_id": int(seg.get("segment_id", -1)),
@@ -515,21 +549,10 @@ def main() -> None:
                     "beta": float(extra.beta),
                 },
                 "runtime_stats": {
-                    "x": {
-                        "mean": float(stats.x_mean),
-                        "std": float(stats.x_std),
-                        "p1": float(stats.x_p1),
-                        "p50": float(stats.x_p50),
-                        "p99": float(stats.x_p99),
-                    },
-                    "y": {
-                        "mean": float(stats.y_mean),
-                        "std": float(stats.y_std),
-                        "p1": float(stats.y_p1),
-                        "p50": float(stats.y_p50),
-                        "p99": float(stats.y_p99),
-                    },
+                    "x": {name: float(stats.x.get(name, 0.0)) for name in RAW_STAT_FIELDS},
+                    "y": {name: float(stats.y.get(name, 0.0)) for name in RAW_STAT_FIELDS},
                 },
+                "format_features": format_feature_map,
                 "pred_rel_err": pred_dict,
                 "chosen": chosen,
                 "chosen_pred": chosen_pred,
@@ -537,7 +560,7 @@ def main() -> None:
         )
         pred_mat.append(pred)
 
-    pred_mat_np = np.stack(pred_mat, axis=0)  # (num_segments, num_targets)
+    pred_mat_np = np.stack(pred_mat, axis=0)  # (num_segments, num_formats)
     agg_fn = np.max if args.aggregate == "max" else np.mean
     agg = agg_fn(pred_mat_np, axis=0)
 
@@ -550,7 +573,7 @@ def main() -> None:
         "pick": {"strategy": str(args.pick), "tol": float(args.tol)},
         "summary": {
             "aggregate": str(args.aggregate),
-            "pred_rel_err": {str(n): float(v) for n, v in zip(target_names, agg)},
+            "pred_rel_err": {str(n): float(v) for n, v in zip(format_names, agg)},
         },
         "segments": per_seg,
     }
@@ -563,14 +586,14 @@ def main() -> None:
     print("saved json  :", str(out_json))
     print(f"aggregate   : {args.aggregate}")
     print("Agg predicted relative errors (vs fp64):")
-    for name, val in zip(target_names, agg):
+    for name, val in zip(format_names, agg):
         print(f"  {name:14s}: {float(val):.6e}")
 
     if args.save_csv:
         with open(args.save_csv, "w", newline="") as f:
             w = csv.writer(f)
             w.writerow(["target", "pred"])
-            for name, val in zip(target_names, agg):
+            for name, val in zip(format_names, agg):
                 w.writerow([name, float(val)])
         print("Saved aggregate predictions to", args.save_csv)
 
@@ -580,7 +603,7 @@ def main() -> None:
             w.writerow(["segment_id", "func_name", "target", "pred", "chosen"])
             for seg in per_seg:
                 chosen = seg["chosen"]
-                for t in target_names:
+                for t in format_names:
                     w.writerow(
                         [
                             seg["segment_id"],

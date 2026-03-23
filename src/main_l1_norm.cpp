@@ -66,7 +66,7 @@ struct Format { int n; int es; };
 
 // runtime dispatch: n ∈ {8,16,32}，es ∈ [0, n-2]
 template<int N, int ES, typename Fn, typename... Args>
-double dispatch_es(int target_es, Fn &&fn, Args&&... args) {
+auto dispatch_es(int target_es, Fn &&fn, Args&&... args) {
     if (target_es == ES) {
         return fn(std::integral_constant<int, N>{}, std::integral_constant<int, ES>{}, std::forward<Args>(args)...);
     }
@@ -77,7 +77,7 @@ double dispatch_es(int target_es, Fn &&fn, Args&&... args) {
 }
 
 template<typename Fn, typename... Args>
-double dispatch_posit(int n, int es, Fn &&fn, Args&&... args) {
+auto dispatch_posit(int n, int es, Fn &&fn, Args&&... args) {
     switch (n) {
         case 8:  return dispatch_es<8, 0>(es, std::forward<Fn>(fn), std::forward<Args>(args)...);
         case 16: return dispatch_es<16,0>(es, std::forward<Fn>(fn), std::forward<Args>(args)...);
@@ -111,9 +111,15 @@ int main() {
     ofs << "sample_id,vec_len,dist_type,"
         << "posit_n,posit_es,"
         << "abs_err,rel_err,"
-        << "fp32_abs_err,fp32_rel_err,"
-        << "x_mean,x_std,x_p1,x_p50,x_p99,"
-        << "y_mean,y_std,y_p1,y_p50,y_p99\n";
+        << "fp32_abs_err,fp32_rel_err,";
+    write_stats_header(ofs, "x");
+    ofs << ",";
+    write_stats_header(ofs, "y");
+    ofs << ",";
+    write_quant_feature_header(ofs, "x");
+    ofs << ",";
+    write_quant_feature_header(ofs, "y");
+    ofs << "\n";
 
     int gid = 0;
     for (int len : vec_lens) {
@@ -121,7 +127,7 @@ int main() {
             for (int s = 0; s < num_samples_per_setting; ++s) {
                 auto x = gen_vector(len, rng, dist);
                 auto xs = compute_vec_stats_absq(x);
-                VecStats ys{0.0, 0.0, 0.0, 0.0, 0.0};
+                VecStats ys{};
 
                 double ref64 = l1_norm_double(x);
 
@@ -137,11 +143,19 @@ int main() {
                     auto runner = [&](auto n_c, auto es_c) -> double {
                         return l1_norm_posit<n_c, es_c>(x);
                     };
+                    auto quant_runner = [&](auto n_c, auto es_c) {
+                        using p = posit<n_c, es_c>;
+                        return std::pair<QuantFeatureStats, QuantFeatureStats>{
+                            compute_vec_quant_features<p>(x),
+                            QuantFeatureStats{},
+                        };
+                    };
                     try {
                         rp = dispatch_posit(f.n, f.es, runner);
                     } catch (const std::exception&) {
                         continue;
                     }
+                    auto [xq, yq] = dispatch_posit(f.n, f.es, quant_runner);
 
                     double abs_err = fabs(rp - ref64);
                     double rel_err = abs_err / (fabs(ref64) + 1e-12);
@@ -154,9 +168,15 @@ int main() {
                         << abs_err << ","
                         << rel_err << ","
                         << fp32_abs_err << ","
-                        << fp32_rel_err << ","
-                        << xs.mean << "," << xs.std << "," << xs.p1 << "," << xs.p50 << "," << xs.p99 << ","
-                        << ys.mean << "," << ys.std << "," << ys.p1 << "," << ys.p50 << "," << ys.p99 << "\n";
+                        << fp32_rel_err << ",";
+                    write_stats_values(ofs, xs);
+                    ofs << ",";
+                    write_stats_values(ofs, ys);
+                    ofs << ",";
+                    write_quant_feature_values(ofs, xq);
+                    ofs << ",";
+                    write_quant_feature_values(ofs, yq);
+                    ofs << "\n";
                 }
                 ++gid;
             }

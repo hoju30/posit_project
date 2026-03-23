@@ -1,0 +1,76 @@
+{
+  "data": "/home/hoju/test/posit_test/data/ml_dataset_ir_errors.npz",
+  "n_rows": 532800,
+  "n_samples": 59200,
+  "n_formats": 9,
+  "format_names": [
+    "posit_8_0",
+    "posit_8_1",
+    "posit_8_2",
+    "posit_16_0",
+    "posit_16_1",
+    "posit_16_2",
+    "posit_32_0",
+    "posit_32_1",
+    "posit_32_2"
+  ],
+  "train_samples": 47360,
+  "test_samples": 11840,
+  "train_rows": 426240,
+  "test_rows": 106560,
+  "old_ir2vec_stats_x_dim": 355,
+  "old_ir2vec_stats_cfg_x_dim": 363,
+  "current_per_format_x_dim": 377,
+  "seed": 0,
+  "test_ratio": 0.2,
+  "train_config": {
+    "n_estimators": 200,
+    "min_samples_leaf": 8,
+    "max_depth": 24,
+    "max_samples": 0.25
+  },
+  "results": {
+    "old_ir2vec_stats_multioutput": {
+      "mae": 3463.6647465420974,
+      "rmse": 956810.0408094422,
+      "mape": 7.077043119123446,
+      "pick_acc": 0.6154560810810811,
+      "mean_regret": 2.3081984323880533e-08,
+      "median_regret": 0.0
+    },
+    "old_ir2vec_stats_cfg_multioutput": {
+      "mae": 3461.0063626588844,
+      "rmse": 956784.2094621334,
+      "mape": 7.235608021932083,
+      "pick_acc": 0.6150337837837838,
+      "mean_regret": 2.361091588909403e-08,
+      "median_regret": 0.0
+    },
+    "current_per_format_models_quant": {
+      "mae": 3460.85400390625,
+      "rmse": 956755.6875,
+      "mape": 7.276010990142822,
+      "pick_acc": 0.6157939189189189,
+      "mean_regret": 2.231271523100986e-08,
+      "median_regret": 0.0
+    }
+  },
+  "deltas": {
+    "current_minus_old_ir2vec_stats_multioutput": {
+      "mae": -2.8107426358474186,
+      "rmse": -54.35330944217276,
+      "mape": 0.1989678710193763,
+      "pick_acc": 0.00033783783783780663,
+      "mean_regret": -7.692690928706725e-10,
+      "median_regret": 0.0
+    },
+    "current_minus_old_ir2vec_stats_cfg_multioutput": {
+      "mae": -0.15235875263442722,
+      "rmse": -28.521962133352645,
+      "mape": 0.04040296821073941,
+      "pick_acc": 0.0007601351351350649,
+      "mean_regret": -1.2982006580841698e-09,
+      "median_regret": 0.0
+    }
+  }
+}

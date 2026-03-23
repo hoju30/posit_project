@@ -6,7 +6,12 @@ import ir2vec
 import joblib
 from pathlib import Path
 
-from split_loops_and_analyze_cfg import cfg_feature_vector_from_ll_path, CFG_FEAT_NAMES
+from error_feature_utils import (
+    RAW_STAT_FIELDS,
+    derived_stats_features,
+    parse_format_name,
+    raw_stats_features,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_DIR = ROOT / "models"
@@ -17,45 +22,90 @@ def load_ir2vec_vector(ir_path: str):
     v = init_obj.getProgramVector()
     return np.asarray(v, dtype=np.float32)
 
-def log10p(x: float, eps: float) -> float:
-    return float(np.log10(float(x) + eps))
 
-def tail_features(mean: float, std: float, p1: float, p50: float, p99: float, eps: float):
-    if (
-        float(mean) == 0.0
-        and float(std) == 0.0
-        and float(p1) == 0.0
-        and float(p50) == 0.0
-        and float(p99) == 0.0
-    ):
-        return [0.0] * 12
+def parse_format_features_json(path: str | None) -> dict[str, dict[str, float]]:
+    if not path:
+        return {}
+    import json
 
-    std_pos = float(std) if float(std) > 0.0 else 0.0
-    denom = std_pos + eps
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if isinstance(payload.get("formats"), dict):
+        payload = payload["formats"]
+    out: dict[str, dict[str, float]] = {}
+    for fmt, vals in payload.items():
+        if isinstance(vals, dict):
+            out[str(fmt)] = {str(k): float(v) for k, v in vals.items()}
+    return out
 
-    # magnitude-based (posit sweet spot)
-    p1a = abs(float(p1))
-    p50a = abs(float(p50))
-    p99a = abs(float(p99))
-    log_p1 = log10p(p1a, eps)
-    log_p50 = log10p(p50a, eps)
-    log_p99 = log10p(p99a, eps)
 
-    # useed = 2^(2^es), es in {0,1,2}
-    useed_log10 = [np.log10(2.0), np.log10(4.0), np.log10(16.0)]
-    sweet = [log_p50, (log_p99 - log_p1)]
-    for log_useed in useed_log10:
-        upper_excess = max(0.0, log_p99 - log_useed)
-        lower_excess = max(0.0, (-log_useed) - log_p1)
-        sweet.extend([upper_excess, lower_excess])
+def apply_selective_calibration(preds: np.ndarray, format_names: list[str], bundle: dict) -> np.ndarray:
+    calib = bundle.get("calibration")
+    if not calib or not bool(calib.get("enabled", False)):
+        return preds
+    if str(calib.get("type")) != "log_linear_selective":
+        return preds
+    out = np.asarray(preds, dtype=np.float64).copy()
+    for i, name in enumerate(format_names):
+        spec = calib.get("formats", {}).get(str(name), {})
+        if not bool(spec.get("use_calibrated", False)):
+            continue
+        slope = float(spec.get("slope", 1.0))
+        intercept = float(spec.get("intercept", 0.0))
+        pred_log = np.log10(max(float(out[i]), 0.0) + 1e-30)
+        out[i] = max((10.0 ** (pred_log * slope + intercept)) - 1e-30, 0.0)
+    return out
 
-    return [
-        log10p(std_pos, eps),               # log10(std + eps) (scale)
-        (float(p99) - float(p50)) / denom,  # upper_tail
-        (float(p50) - float(p1)) / denom,   # lower_tail
-        float(mean) / denom,                # standardized_mean
-        *sweet,
-    ]
+
+def build_shared_feature(
+    ir_path: str,
+    ir_vec: np.ndarray,
+    args: argparse.Namespace,
+    meta: dict[str, object],
+) -> np.ndarray:
+    v = ir_vec.reshape(1, -1)
+    vec_scale = float(meta.get("vec_scale", 1.0))
+    rows_scale = float(meta.get("rows_scale", 1.0))
+    cols_scale = float(meta.get("cols_scale", 1.0))
+    vec_lens = meta.get("vec_lens", [])
+    cfg_dim = int(meta.get("cfg_dim", 0))
+    shared_feat_dim = int(meta.get("shared_feat_dim", 5 + 2 * len(RAW_STAT_FIELDS) + cfg_dim))
+
+    extra = []
+    vec_val = args.vec_len
+    if vec_lens:
+        vec_val = min(vec_lens, key=lambda x: abs(x - args.vec_len))
+    extra.append(vec_val / vec_scale if vec_scale else 0.0)
+    extra.append(args.rows / rows_scale if rows_scale else 0.0)
+    extra.append(args.cols / cols_scale if cols_scale else 0.0)
+    extra.append(float(args.alpha))
+    extra.append(float(args.beta))
+
+    x_stats_map = {name: float(getattr(args, f"x_{name}")) for name in RAW_STAT_FIELDS}
+    y_stats_map = {name: float(getattr(args, f"y_{name}")) for name in RAW_STAT_FIELDS}
+    stats_feats = (
+        raw_stats_features(x_stats_map)
+        + raw_stats_features(y_stats_map)
+        + derived_stats_features(x_stats_map)
+        + derived_stats_features(y_stats_map)
+    )
+
+    cfg_feats = []
+
+    extra_tail_len = shared_feat_dim - len(extra) - len(stats_feats) - len(cfg_feats)
+    if extra_tail_len < 0:
+        extra_tail_len = 0
+    extra_tail = [0.0] * extra_tail_len
+    return np.concatenate(
+        [v.flatten(), np.array(extra + stats_feats + cfg_feats + extra_tail, dtype=np.float32)]
+    )
+
+
+def build_format_feature(shared_feat: np.ndarray, n: int, es: int, meta: dict[str, object]) -> np.ndarray:
+    format_feat_dim = int(meta.get("format_feat_dim", 2))
+    format_feats = [float(n) / 32.0, float(es) / 2.0]
+    if format_feat_dim > len(format_feats):
+        format_feats.extend([0.0] * (format_feat_dim - len(format_feats)))
+    return np.concatenate([shared_feat, np.asarray(format_feats[:format_feat_dim], dtype=np.float32)]).reshape(1, -1)
 
 
 def main():
@@ -74,86 +124,64 @@ def main():
         "--save-json",
         help="optional path to save predictions as JSON (pred_rel_err mapping)",
     )
+    parser.add_argument(
+        "--format-features-json",
+        help="optional JSON mapping per format quant features, e.g. {\"posit_8_0\": {\"x_oor_ratio\": ...}}",
+    )
     parser.add_argument("--vec-len", type=float, default=0.0, help="vector length (for dot/sum etc.)")
     parser.add_argument("--rows", type=float, default=0.0, help="rows (matvec)")
     parser.add_argument("--cols", type=float, default=0.0, help="cols (matvec)")
     parser.add_argument("--alpha", type=float, default=0.0, help="axpy/axpby: alpha (optional)")
     parser.add_argument("--beta", type=float, default=0.0, help="axpby: beta (optional)")
-    # dot: runtime 統計（提供 mean/std/p1/p50/p99；模型內轉成 tail features）
-    parser.add_argument("--x-mean", type=float, default=0.0, help="dot: mean(x)")
-    parser.add_argument("--x-std", type=float, default=0.0, help="dot: std(x)")
-    parser.add_argument("--x-p1", type=float, default=0.0, help="dot: p1(x)")
-    parser.add_argument("--x-p50", type=float, default=0.0, help="dot: p50(x)")
-    parser.add_argument("--x-p99", type=float, default=0.0, help="dot: p99(x)")
-    parser.add_argument("--y-mean", type=float, default=0.0, help="dot: mean(y)")
-    parser.add_argument("--y-std", type=float, default=0.0, help="dot: std(y)")
-    parser.add_argument("--y-p1", type=float, default=0.0, help="dot: p1(y)")
-    parser.add_argument("--y-p50", type=float, default=0.0, help="dot: p50(y)")
-    parser.add_argument("--y-p99", type=float, default=0.0, help="dot: p99(y)")
+    for prefix in ("x", "y"):
+        for name in RAW_STAT_FIELDS:
+            flag_name = name.replace("_", "-")
+            flags = [f"--{prefix}-{flag_name}", f"--{prefix}-{name}"]
+            if name == "p01":
+                flags.append(f"--{prefix}-p1")
+            parser.add_argument(*flags, dest=f"{prefix}_{name}", type=float, default=0.0)
     args = parser.parse_args()
 
     bundle = joblib.load(args.model)
-    reg = bundle["model"]
-    target_names = bundle["target_names"]
+    reg = bundle.get("model")
+    reg_map = bundle.get("models")
+    format_names = bundle.get("format_names")
+    if format_names is None:
+        raise SystemExit("model missing format_names; retrain with per-format regression dataset")
     meta = bundle.get("meta", None) or {}
+    quant_feat_names = list(meta.get("quant_feat_names", []))
+    format_feature_map = parse_format_features_json(args.format_features_json)
 
-    v = load_ir2vec_vector(args.ir).reshape(1, -1)
-    # 附加特徵：vec_len/rows/cols + dot(x/y) 統計特徵
-    ir_dim = meta.get("ir_dim", v.shape[1])
-    vec_scale = meta.get("vec_scale", 1.0)
-    rows_scale = meta.get("rows_scale", 1.0)
-    cols_scale = meta.get("cols_scale", 1.0)
-    vec_lens = meta.get("vec_lens", [])
-    eps = float(meta.get("eps", 1e-30))
-    cfg_dim = int(meta.get("cfg_dim", 0))
-    extra_dim = int(meta.get("extra_dim", 5 + 24 + cfg_dim))
-
-    extra = []
-    # snap vec_len 到最近的訓練值（若提供列表）
-    vec_val = args.vec_len
-    if vec_lens:
-        vec_val = min(vec_lens, key=lambda x: abs(x - args.vec_len))
-    extra.append(vec_val / vec_scale if vec_scale else 0.0)
-
-    extra.append(args.rows / rows_scale if rows_scale else 0.0)
-    extra.append(args.cols / cols_scale if cols_scale else 0.0)
-    extra.append(float(args.alpha))
-    extra.append(float(args.beta))
-
-    stats_feats = (
-        tail_features(args.x_mean, args.x_std, args.x_p1, args.x_p50, args.x_p99, eps)
-        + tail_features(args.y_mean, args.y_std, args.y_p1, args.y_p50, args.y_p99, eps)
-    )
-
-    if cfg_dim > 0:
-        try:
-            cfg_feats, _ = cfg_feature_vector_from_ll_path(args.ir, scc_mode="auto")
-            cfg_feats = np.asarray(cfg_feats, dtype=np.float32).tolist()
-        except Exception:
-            cfg_feats = [0.0] * cfg_dim
+    ir_vec = load_ir2vec_vector(args.ir)
+    shared_feat = build_shared_feature(args.ir, ir_vec, args, meta)
+    feat_mat = []
+    for name in format_names:
+        n, es = parse_format_name(str(name))
+        feat = build_format_feature(shared_feat, n, es, meta).reshape(-1)
+        if quant_feat_names:
+            fmt_map = format_feature_map.get(str(name), {})
+            quant_vals = np.asarray([float(fmt_map.get(qname, 0.0)) for qname in quant_feat_names], dtype=np.float32)
+            feat[-len(quant_feat_names):] = quant_vals
+        feat_mat.append(feat)
+    feat_mat_np = np.stack(feat_mat, axis=0)
+    if reg_map:
+        preds = np.asarray([reg_map[str(name)].predict(feat_mat_np[i : i + 1])[0] for i, name in enumerate(format_names)])
+    elif reg is not None:
+        preds = reg.predict(feat_mat_np)
     else:
-        cfg_feats = []
-
-    extra_tail_len = extra_dim - len(extra) - len(stats_feats) - len(cfg_feats)
-    if extra_tail_len < 0:
-        extra_tail_len = 0
-    extra_tail = [0.0] * extra_tail_len
-    feat = np.concatenate(
-        [v.flatten(), np.array(extra + stats_feats + cfg_feats + extra_tail, dtype=np.float32)]
-    ).reshape(1, -1)
-
-    preds = reg.predict(feat)[0]  # shape = (num_targets,) without fp64
+        raise SystemExit("model file missing both 'model' and 'models'")
 
     # 還原目標尺度（若模型有記錄 transform）
     y_transform = bundle.get("y_transform")
     if y_transform and y_transform.get("type") == "log10":
         eps = float(y_transform.get("eps", 0.0))
         preds = (10.0 ** preds) - eps
+    preds = apply_selective_calibration(np.asarray(preds, dtype=np.float64), list(format_names), bundle)
 
     print("=== IR2Vec Error Predictor ===")
     print("IR file:", args.ir)
     print("Predicted relative errors (vs fp64):")
-    for name, val in zip(target_names, preds):
+    for name, val in zip(format_names, preds):
         print(f"  {name:14s}: {val:.6e}")
 
     if args.save_csv:
@@ -162,7 +190,7 @@ def main():
             w = csv.writer(f)
             header = ["target", "pred"]
             w.writerow(header)
-            for name, pred in zip(target_names, preds):
+            for name, pred in zip(format_names, preds):
                 w.writerow([name, pred])
         print("Saved predictions to", args.save_csv)
 
@@ -171,27 +199,16 @@ def main():
 
         payload = {
             "ir": str(args.ir),
-            "pred_rel_err": {name: float(val) for name, val in zip(target_names, preds)},
+            "pred_rel_err": {str(name): float(val) for name, val in zip(format_names, preds)},
             "meta": {
                 "vec_len": float(args.vec_len),
                 "rows": float(args.rows),
                 "cols": float(args.cols),
                 "alpha": float(args.alpha),
                 "beta": float(args.beta),
-                "x_stats": {
-                    "mean": float(args.x_mean),
-                    "std": float(args.x_std),
-                    "p1": float(args.x_p1),
-                    "p50": float(args.x_p50),
-                    "p99": float(args.x_p99),
-                },
-                "y_stats": {
-                    "mean": float(args.y_mean),
-                    "std": float(args.y_std),
-                    "p1": float(args.y_p1),
-                    "p50": float(args.y_p50),
-                    "p99": float(args.y_p99),
-                },
+                "x_stats": {name: float(getattr(args, f"x_{name}")) for name in RAW_STAT_FIELDS},
+                "y_stats": {name: float(getattr(args, f"y_{name}")) for name in RAW_STAT_FIELDS},
+                "format_features_json": str(args.format_features_json) if args.format_features_json else None,
             },
         }
         Path(args.save_json).write_text(

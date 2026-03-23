@@ -1,0 +1,76 @@
+{
+  "data": "/home/hoju/test/posit_test/data/ml_dataset_ir_errors.npz",
+  "n_rows": 532800,
+  "n_samples": 59200,
+  "n_formats": 9,
+  "format_names": [
+    "posit_8_0",
+    "posit_8_1",
+    "posit_8_2",
+    "posit_16_0",
+    "posit_16_1",
+    "posit_16_2",
+    "posit_32_0",
+    "posit_32_1",
+    "posit_32_2"
+  ],
+  "train_samples": 47360,
+  "test_samples": 11840,
+  "train_rows": 426240,
+  "test_rows": 106560,
+  "old_ir2vec_stats_x_dim": 331,
+  "old_ir2vec_stats_cfg_x_dim": 339,
+  "current_per_format_x_dim": 353,
+  "seed": 0,
+  "test_ratio": 0.2,
+  "train_config": {
+    "n_estimators": 200,
+    "min_samples_leaf": 8,
+    "max_depth": 24,
+    "max_samples": 0.25
+  },
+  "results": {
+    "old_ir2vec_stats_multioutput": {
+      "mae": 3478.894187679818,
+      "rmse": 956893.9165285047,
+      "mape": 6.352402788457979,
+      "pick_acc": 0.6100506756756757,
+      "mean_regret": 2.377517915874705e-08,
+      "median_regret": 0.0
+    },
+    "old_ir2vec_stats_cfg_multioutput": {
+      "mae": 3478.4091907194565,
+      "rmse": 956944.0257541145,
+      "mape": 6.4531936015888,
+      "pick_acc": 0.6089527027027027,
+      "mean_regret": 2.3630454037970594e-08,
+      "median_regret": 0.0
+    },
+    "current_per_format_quant": {
+      "mae": 3489.77783203125,
+      "rmse": 956920.0625,
+      "mape": 7.9805827140808105,
+      "pick_acc": 0.6162162162162163,
+      "mean_regret": 2.1559682039651307e-08,
+      "median_regret": 0.0
+    }
+  },
+  "deltas": {
+    "current_minus_old_ir2vec_stats_multioutput": {
+      "mae": 10.88364435143194,
+      "rmse": 26.145971495308913,
+      "mape": 1.628179925622832,
+      "pick_acc": 0.006165540540540526,
+      "mean_regret": -2.215497119095744e-09,
+      "median_regret": 0.0
+    },
+    "current_minus_old_ir2vec_stats_cfg_multioutput": {
+      "mae": 11.368641311793453,
+      "rmse": -23.96325411449652,
+      "mape": 1.5273891124920107,
+      "pick_acc": 0.007263513513513509,
+      "mean_regret": -2.0707719983192874e-09,
+      "median_regret": 0.0
+    }
+  }
+}

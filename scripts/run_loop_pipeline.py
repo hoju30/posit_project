@@ -30,6 +30,21 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
+RAW_STAT_FIELDS = [
+    "mean",
+    "std",
+    "min",
+    "max",
+    "abs_max",
+    "skewness",
+    "excess_kurtosis",
+    "p01",
+    "p50",
+    "p99",
+    "near_zero_ratio",
+    "pos_ratio",
+    "neg_ratio",
+]
 
 
 def run(cmd: list[str], *, cwd: Path | None = None) -> None:
@@ -87,16 +102,14 @@ def main() -> None:
     ap.add_argument("--cols", type=float, default=0.0)
     ap.add_argument("--alpha", type=float, default=0.0)
     ap.add_argument("--beta", type=float, default=0.0)
-    ap.add_argument("--x-mean", type=float, default=0.0)
-    ap.add_argument("--x-std", type=float, default=0.0)
-    ap.add_argument("--x-p1", type=float, default=0.0)
-    ap.add_argument("--x-p50", type=float, default=0.0)
-    ap.add_argument("--x-p99", type=float, default=0.0)
-    ap.add_argument("--y-mean", type=float, default=0.0)
-    ap.add_argument("--y-std", type=float, default=0.0)
-    ap.add_argument("--y-p1", type=float, default=0.0)
-    ap.add_argument("--y-p50", type=float, default=0.0)
-    ap.add_argument("--y-p99", type=float, default=0.0)
+    ap.add_argument("--format-features-json", default=None)
+    for prefix in ("x", "y"):
+        for name in RAW_STAT_FIELDS:
+            flag_name = name.replace("_", "-")
+            flags = [f"--{prefix}-{flag_name}", f"--{prefix}-{name}"]
+            if name == "p01":
+                flags.append(f"--{prefix}-p1")
+            ap.add_argument(*flags, dest=f"{prefix}_{name}", type=float, default=0.0)
 
     ap.add_argument("--pick", default="min_error", choices=["min_error", "min_bits_under_tol"])
     ap.add_argument("--tol", type=float, default=1e-3)
@@ -205,26 +218,6 @@ def main() -> None:
         str(args.alpha),
         "--beta",
         str(args.beta),
-        "--x-mean",
-        str(args.x_mean),
-        "--x-std",
-        str(args.x_std),
-        "--x-p1",
-        str(args.x_p1),
-        "--x-p50",
-        str(args.x_p50),
-        "--x-p99",
-        str(args.x_p99),
-        "--y-mean",
-        str(args.y_mean),
-        "--y-std",
-        str(args.y_std),
-        "--y-p1",
-        str(args.y_p1),
-        "--y-p50",
-        str(args.y_p50),
-        "--y-p99",
-        str(args.y_p99),
         "--pick",
         str(args.pick),
         "--tol",
@@ -232,6 +225,11 @@ def main() -> None:
         "--save-json",
         str(preds_json),
     ]
+    if args.format_features_json:
+        pred_cmd.extend(["--format-features-json", str(args.format_features_json)])
+    for prefix in ("x", "y"):
+        for name in RAW_STAT_FIELDS:
+            pred_cmd.extend([f"--{prefix}-{name.replace('_', '-')}", str(getattr(args, f"{prefix}_{name}"))])
     run(pred_cmd, cwd=ROOT)
 
     # 5) Map segments -> loop_id via marker, build plan.json

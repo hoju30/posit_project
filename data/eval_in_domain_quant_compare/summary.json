@@ -1,0 +1,40 @@
+{
+  "data": "/home/hoju/test/posit_test/data/ml_dataset_ir_errors.npz",
+  "train_rows": 426240,
+  "test_rows": 106560,
+  "train_samples": 47360,
+  "test_samples": 11840,
+  "x_dim_base": 341,
+  "x_dim_full": 353,
+  "quant_feat_names": [
+    "x_oor_ratio",
+    "x_clip_high_ratio",
+    "x_clip_low_ratio",
+    "x_rel_qerr_mean",
+    "x_zero_after_quant_ratio",
+    "x_unique_ratio",
+    "y_oor_ratio",
+    "y_clip_high_ratio",
+    "y_clip_low_ratio",
+    "y_rel_qerr_mean",
+    "y_zero_after_quant_ratio",
+    "y_unique_ratio"
+  ],
+  "models": {
+    "baseline_no_quant": {
+      "mae": 3525.9878883544156,
+      "rmse": 957050.1080995413,
+      "mape": 93.0477882272151
+    },
+    "current_with_quant": {
+      "mae": 3489.7780048553063,
+      "rmse": 956920.082687099,
+      "mape": 7.980582688573723
+    },
+    "delta": {
+      "mae": -36.20988349910931,
+      "rmse": -130.02541244227905,
+      "mape": -85.06720553864137
+    }
+  }
+}

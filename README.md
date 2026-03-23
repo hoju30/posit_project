@@ -13,7 +13,7 @@
 - `external/`：第三方庫（universal）。
 
 ## 模型
-- 誤差回歸：IR2Vec +（vec_len/rows/cols）+（dot 的 x/y 統計）→ 各格式（posit 8/16/32 es≤2、fp32）的相對誤差（vs fp64），`models/ir2vec_error_predictor.joblib`（推論 `scripts/predict_ir_errors.py`）。
+- 誤差回歸：IR2Vec +（vec_len/rows/cols）+（x/y 統計特徵：mean/std/min/max/abs_max/skewness/excess_kurtosis/p01/p50/p99/near_zero_ratio/pos_ratio/neg_ratio）→ 各格式（posit 8/16/32 es≤2、fp32）的相對誤差（vs fp64），`models/ir2vec_error_predictor.joblib`（推論 `scripts/predict_ir_errors.py`）。
 - 皆為 sklearn RandomForest。
 
 ## 流程（啟用 venv，於專案根目錄）
@@ -30,7 +30,7 @@ g++ -std=c++20 -O2 src/main_axpby_sum.cpp src/kernel.cpp -Iexternal/universal/in
 g++ -std=c++20 -O2 src/main_matvec.cpp src/kernel.cpp -Iexternal/universal/include/sw -o bin/matvec_run
 g++ -std=c++20 -O2 src/main_prefix_sum.cpp src/kernel.cpp -Iexternal/universal/include/sw -o bin/prefix_sum_run
 
-./bin/dot_run --random-scale --samples 2000   # dot 會同時輸出 x/y 的 mean/std/min/max
+./bin/dot_run --random-scale --samples 2000   # dot 會同時輸出完整 x/y raw stats
 ./bin/sum_run
 ./bin/axpy_run
 ./bin/relu_run
@@ -74,8 +74,8 @@ python scripts/extract_ir2vec_features.py
 python scripts/build_ml_dataset_ir_errors.py   # → data/ml_dataset_ir_errors.npz
 python scripts/train_ir_error_model.py         # → models/ir2vec_error_predictor.joblib
 python scripts/predict_ir_errors.py ir/dot.ll --vec-len 128 \
-  --x-mean 0 --x-std 1 --x-p1 -3 --x-p50 0 --x-p99 3 \
-  --y-mean 0 --y-std 10 --y-p1 -30 --y-p50 0 --y-p99 30 \
+  --x-mean 0 --x-std 1 --x-min -3 --x-max 3 --x-abs-max 3 --x-skewness 0 --x-excess-kurtosis 0 --x-p01 -2.3 --x-p50 0 --x-p99 2.3 --x-near-zero-ratio 0.01 --x-pos-ratio 0.5 --x-neg-ratio 0.5 \
+  --y-mean 0 --y-std 10 --y-min -30 --y-max 30 --y-abs-max 30 --y-skewness 0 --y-excess-kurtosis 0 --y-p01 -23 --y-p50 0 --y-p99 23 --y-near-zero-ratio 0.01 --y-pos-ratio 0.5 --y-neg-ratio 0.5 \
   --save-csv data/dot_error_preds.csv
 python scripts/plot_bar.py --csv data/dot_error_preds.csv --out-prefix data/dot_error_bar
 ```

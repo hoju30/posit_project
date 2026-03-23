@@ -14,6 +14,7 @@ using namespace sw::universal;
 using namespace std;
 
 #include "kernel.hpp"
+#include "stats.hpp"
 
 
 enum class DistType {
@@ -69,27 +70,6 @@ vector<double> gen_vector(int n, mt19937 &rng, DistType dist_type, double scale,
     return v;
 }
 
-static tuple<double, double, double> abs_percentiles_nearest(const vector<double> &v) {
-    if (v.empty()) return {0.0, 0.0, 0.0};
-    vector<double> tmp(v.size());
-    for (size_t i = 0; i < v.size(); ++i) tmp[i] = fabs(v[i]);
-    size_t n = tmp.size();
-    size_t k1 = static_cast<size_t>(floor(0.01 * static_cast<double>(n - 1)));
-    size_t k50 = static_cast<size_t>(floor(0.50 * static_cast<double>(n - 1)));
-    size_t k99 = static_cast<size_t>(floor(0.99 * static_cast<double>(n - 1)));
-    if (k1 >= n) k1 = n - 1;
-    if (k50 >= n) k50 = n - 1;
-    if (k99 >= n) k99 = n - 1;
-
-    nth_element(tmp.begin(), tmp.begin() + k1, tmp.end());
-    double p1 = tmp[k1];
-    nth_element(tmp.begin(), tmp.begin() + k50, tmp.end());
-    double p50 = tmp[k50];
-    nth_element(tmp.begin(), tmp.begin() + k99, tmp.end());
-    double p99 = tmp[k99];
-    return {p1, p50, p99};
-}
-
 // fp64 baseline 版 dot，當作「近似真值」
 double dot_double(const vector<double> &a, const vector<double> &b) {
     return dot<double>(a, b);
@@ -123,7 +103,7 @@ struct Format {
 
 // runtime dispatch: n ∈ {8,16,32}，es ∈ [0, n-2]
 template<int N, int ES, typename Fn, typename... Args>
-double dispatch_es(int target_es, Fn &&fn, Args&&... args) {
+auto dispatch_es(int target_es, Fn &&fn, Args&&... args) {
     if (target_es == ES) {
         return fn(std::integral_constant<int, N>{}, std::integral_constant<int, ES>{}, std::forward<Args>(args)...);
     }
@@ -134,7 +114,7 @@ double dispatch_es(int target_es, Fn &&fn, Args&&... args) {
 }
 
 template<typename Fn, typename... Args>
-double dispatch_posit(int n, int es, Fn &&fn, Args&&... args) {
+auto dispatch_posit(int n, int es, Fn &&fn, Args&&... args) {
     switch (n) {
         case 8:  return dispatch_es<8, 0>(es, std::forward<Fn>(fn), std::forward<Args>(args)...);
         case 16: return dispatch_es<16,0>(es, std::forward<Fn>(fn), std::forward<Args>(args)...);
@@ -200,9 +180,15 @@ int main(int argc, char **argv) {
         << "x_scale,y_scale,"
         << "posit_n,posit_es,"
         << "abs_err,rel_err,"
-        << "fp32_abs_err,fp32_rel_err,"
-        << "x_mean,x_std,x_p1,x_p50,x_p99,"
-        << "y_mean,y_std,y_p1,y_p50,y_p99\n";
+        << "fp32_abs_err,fp32_rel_err,";
+    write_stats_header(ofs, "x");
+    ofs << ",";
+    write_stats_header(ofs, "y");
+    ofs << ",";
+    write_quant_feature_header(ofs, "x");
+    ofs << ",";
+    write_quant_feature_header(ofs, "y");
+    ofs << "\n";
 
     int global_sample_id = 0;
 
@@ -230,75 +216,70 @@ int main(int argc, char **argv) {
             double scale_y = independent_scale ? sample_scale(rng, random_scale) : scale_x;
             auto x = gen_vector(len, rng, dist, scale_x, dist_param1, dist_param2);
             auto y = gen_vector(len, rng, dist, scale_y, dist_param1, dist_param2);
+            auto xs = compute_vec_stats_absq(x);
+            auto ys = compute_vec_stats_absq(y);
 
-                auto calc_stats = [](const vector<double> &v) {
-                    double mean = 0.0;
-                    double minv = numeric_limits<double>::infinity();
-                    double maxv = -numeric_limits<double>::infinity();
-                    double sq = 0.0;
-                    for (double val : v) {
-                        mean += val;
-                        sq += val * val;
-                        if (val < minv) minv = val;
-                        if (val > maxv) maxv = val;
-                    }
-                    mean /= static_cast<double>(v.size());
-                    double var = sq / static_cast<double>(v.size()) - mean * mean;
-                    double stdv = (var > 0) ? sqrt(var) : 0.0;
-                    // p1/p50/p99 使用 |v| 的分位數（對 posit 的量級/甜蜜區特徵更有意義）
-                    auto [p1, p50, p99] = abs_percentiles_nearest(v);
-                    return tuple<double,double,double,double,double>(mean, stdv, p1, p50, p99);
+            // 2) fp64 baseline：optimal 近似真值
+            double ref64 = dot_double(x, y);
+
+            // 3) fp32 baseline
+            auto x_f = convert_vec<float>(x);
+            auto y_f = convert_vec<float>(y);
+            float ref32_f = dot<float>(x_f, y_f);
+            double ref32 = static_cast<double>(ref32_f);
+
+            double fp32_abs_err = fabs(ref32 - ref64);
+            double fp32_rel_err = fp32_abs_err / (fabs(ref64) + 1e-12);
+
+            // 4) 對每種 posit 格式計算誤差
+            for (auto f : formats) {
+                double rp = 0.0;
+
+                auto runner = [&](auto n_c, auto es_c) -> double {
+                    return dot_posit<n_c, es_c>(x, y);
                 };
-                auto [x_mean, x_std, x_p1, x_p50, x_p99] = calc_stats(x);
-                auto [y_mean, y_std, y_p1, y_p50, y_p99] = calc_stats(y);
-
-                // 2) fp64 baseline：optimal 近似真值
-                double ref64 = dot_double(x, y);
-
-                // 3) fp32 baseline
-                auto x_f = convert_vec<float>(x);
-                auto y_f = convert_vec<float>(y);
-                float ref32_f = dot<float>(x_f, y_f);
-                double ref32 = static_cast<double>(ref32_f);
-
-                double fp32_abs_err = fabs(ref32 - ref64);
-                double fp32_rel_err = fp32_abs_err / (fabs(ref64) + 1e-12);
-
-                // 4) 對每種 posit 格式計算誤差
-                for (auto f : formats) {
-                    double rp = 0.0;
-
-                    auto runner = [&](auto n_c, auto es_c) -> double {
-                        return dot_posit<n_c, es_c>(x, y);
+                auto quant_runner = [&](auto n_c, auto es_c) {
+                    using p = posit<n_c, es_c>;
+                    return std::pair<QuantFeatureStats, QuantFeatureStats>{
+                        compute_vec_quant_features<p>(x),
+                        compute_vec_quant_features<p>(y),
                     };
+                };
 
-                    try {
-                        rp = dispatch_posit(f.n, f.es, runner);
-                    } catch (const std::exception&) {
-                        continue;
-                    }
-
-                    double abs_err = fabs(rp - ref64);
-                    double rel_err = abs_err / (fabs(ref64) + 1e-12);
-
-                    ofs << global_sample_id << ","
-                        << len << ","
-                        << static_cast<int>(dist) << ","
-                        << dist_param1 << ","
-                        << dist_param2 << ","
-                        << scale_x << ","
-                        << scale_y << ","
-                        << f.n << ","
-                        << f.es << ","
-                        << abs_err << ","
-                        << rel_err << ","
-                        << fp32_abs_err << ","
-                        << fp32_rel_err << ","
-                        << x_mean << "," << x_std << "," << x_p1 << "," << x_p50 << "," << x_p99 << ","
-                        << y_mean << "," << y_std << "," << y_p1 << "," << y_p50 << "," << y_p99 << "\n";
+                try {
+                    rp = dispatch_posit(f.n, f.es, runner);
+                } catch (const std::exception&) {
+                    continue;
                 }
+                auto [xq, yq] = dispatch_posit(f.n, f.es, quant_runner);
 
-                ++global_sample_id;
+                double abs_err = fabs(rp - ref64);
+                double rel_err = abs_err / (fabs(ref64) + 1e-12);
+
+                ofs << global_sample_id << ","
+                    << len << ","
+                    << static_cast<int>(dist) << ","
+                    << dist_param1 << ","
+                    << dist_param2 << ","
+                    << scale_x << ","
+                    << scale_y << ","
+                    << f.n << ","
+                    << f.es << ","
+                    << abs_err << ","
+                    << rel_err << ","
+                    << fp32_abs_err << ","
+                    << fp32_rel_err << ",";
+                write_stats_values(ofs, xs);
+                ofs << ",";
+                write_stats_values(ofs, ys);
+                ofs << ",";
+                write_quant_feature_values(ofs, xq);
+                ofs << ",";
+                write_quant_feature_values(ofs, yq);
+                ofs << "\n";
+            }
+
+            ++global_sample_id;
         }
     }
 
