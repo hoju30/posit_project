@@ -1,16 +1,15 @@
-cat > .gitignore <<'EOF'
 # virtual env
 .venv/
 venv/
 
-# model artifacts
+# models
 models/
 *.joblib
-EOF
+
 # python cache
 __pycache__/
 scripts/__pycache__/
 *.pyc
 
-# large/generated data
+# large generated data
 data/ml_dataset_ir_errors.npz
