@@ -33,7 +33,7 @@ from error_feature_utils import (
     parse_format_name,
     raw_stats_features,
 )
-from split_loops_and_analyze_cfg import split_ir_by_loops
+from posit_test.scripts.split_loops import split_ir_by_loops
 
 
 ROOT = Path(__file__).resolve().parent.parent

@@ -162,7 +162,6 @@ def feature_index_map(meta: dict[str, object]) -> dict[str, np.ndarray]:
     return {
         "ir2vec_only": np.arange(0, ir_end, dtype=np.int64),
         "ir2vec_stats": np.arange(0, stats_end, dtype=np.int64),
-        "ir2vec_stats_cfg": np.arange(0, cfg_end, dtype=np.int64),
         "full_no_quant": np.arange(0, fmt_desc_end, dtype=np.int64),
         "full_quant": np.arange(0, all_end, dtype=np.int64),
     }
@@ -316,7 +315,7 @@ def main() -> None:
     ap.add_argument(
         "--feature-sets",
         default="all",
-        help="comma-separated: ir2vec_only,ir2vec_stats,ir2vec_stats_cfg,full_no_quant,full_quant or 'all'",
+        help="comma-separated: ir2vec_only,ir2vec_stats,full_no_quant,full_quant or 'all'",
     )
     args = ap.parse_args()
 

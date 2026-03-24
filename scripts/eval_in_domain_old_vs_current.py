@@ -117,13 +117,11 @@ def build_sample_level_views(
     meta: dict[str, object],
 ) -> dict[str, object]:
     ir_dim = int(meta.get("ir_dim", 300))
-    cfg_dim = int(meta.get("cfg_dim", 0) or 0)
     stats_dim = len(meta.get("stats_feat_names", []))
     quant_dim = len(meta.get("quant_feat_names", []))
-    scalar_dim = int(meta.get("shared_feat_dim", 0)) - stats_dim - cfg_dim
+    scalar_dim = int(meta.get("shared_feat_dim", 0)) - stats_dim
 
     stats_end = ir_dim + scalar_dim + stats_dim
-    cfg_end = stats_end + cfg_dim
 
     sample_prefixes = np.asarray([parse_sample_prefix(v) for v in ids], dtype=object)
     unique_prefixes = np.unique(sample_prefixes)
@@ -134,7 +132,6 @@ def build_sample_level_views(
     n_formats = len(format_names)
 
     X_stats = np.zeros((n_samples, stats_end), dtype=np.float32)
-    X_stats_cfg = np.zeros((n_samples, cfg_end), dtype=np.float32)
     Y_sample = np.full((n_samples, n_formats), np.nan, dtype=np.float32)
 
     row_sample_idx = np.zeros((ids.shape[0],), dtype=np.int64)
@@ -150,7 +147,6 @@ def build_sample_level_views(
         row_sample_idx[row_idx] = sample_idx
         row_format_idx[row_idx] = fmt_idx
         X_stats[sample_idx] = X[row_idx, :stats_end]
-        X_stats_cfg[sample_idx] = X[row_idx, :cfg_end]
         Y_sample[sample_idx, fmt_idx] = Y[row_idx]
 
     if np.isnan(Y_sample).any():
@@ -162,12 +158,10 @@ def build_sample_level_views(
         "sample_ids": unique_prefixes,
         "sample_kernels": sample_kernels,
         "X_stats": X_stats,
-        "X_stats_cfg": X_stats_cfg,
         "Y_sample": Y_sample,
         "row_sample_idx": row_sample_idx,
         "row_format_idx": row_format_idx,
         "stats_end": stats_end,
-        "cfg_end": cfg_end,
         "quant_dim": quant_dim,
     }
 
@@ -360,7 +354,6 @@ def main() -> None:
     sample_ids = views["sample_ids"]
     sample_kernels = views["sample_kernels"]
     X_stats = views["X_stats"]
-    X_stats_cfg = views["X_stats_cfg"]
     Y_sample = views["Y_sample"]
     row_sample_idx = views["row_sample_idx"]
     row_format_idx = views["row_format_idx"]
@@ -381,17 +374,6 @@ def main() -> None:
         max_depth=int(args.max_depth),
         max_samples=float(args.max_samples),
     )
-    pred_old_stats_cfg = fit_predict_multioutput(
-        X_stats_cfg[tr_samples],
-        Y_sample[tr_samples],
-        X_stats_cfg[te_samples],
-        seed=int(args.seed),
-        n_estimators=int(args.n_estimators),
-        min_samples_leaf=int(args.min_samples_leaf),
-        max_depth=int(args.max_depth),
-        max_samples=float(args.max_samples),
-    )
-
     # Current model: row-level per-format regression with quant features.
     current_models = train_per_format_models(
         X[row_train_mask],
@@ -511,7 +493,6 @@ def main() -> None:
 
     results = {
         "old_ir2vec_stats_multioutput": metric_dict(y_true, pred_old_stats, EPS),
-        "old_ir2vec_stats_cfg_multioutput": metric_dict(y_true, pred_old_stats_cfg, EPS),
         "current_per_format_models_quant": metric_dict(y_true, pred_current, EPS),
         "current_per_format_models_quant_calibrated": metric_dict(y_true, pred_current_cal, EPS),
         "current_per_format_models_quant_selective_calibrated": metric_dict(
@@ -522,10 +503,6 @@ def main() -> None:
     deltas = {
         "current_minus_old_ir2vec_stats_multioutput": {
             k: float(results["current_per_format_models_quant"][k] - results["old_ir2vec_stats_multioutput"][k])
-            for k in results["current_per_format_models_quant"]
-        },
-        "current_minus_old_ir2vec_stats_cfg_multioutput": {
-            k: float(results["current_per_format_models_quant"][k] - results["old_ir2vec_stats_cfg_multioutput"][k])
             for k in results["current_per_format_models_quant"]
         },
         "current_calibrated_minus_current": {
@@ -555,7 +532,6 @@ def main() -> None:
         "train_rows": int(np.sum(row_train_mask)),
         "test_rows": int(np.sum(row_test_mask)),
         "old_ir2vec_stats_x_dim": int(X_stats.shape[1]),
-        "old_ir2vec_stats_cfg_x_dim": int(X_stats_cfg.shape[1]),
         "current_per_format_x_dim": int(X.shape[1]),
         "seed": int(args.seed),
         "test_ratio": float(args.test_ratio),
@@ -576,9 +552,6 @@ def main() -> None:
 
     per_target = []
     per_target.extend(per_target_rows(y_true, pred_old_stats, format_names, "old_ir2vec_stats_multioutput", EPS))
-    per_target.extend(
-        per_target_rows(y_true, pred_old_stats_cfg, format_names, "old_ir2vec_stats_cfg_multioutput", EPS)
-    )
     per_target.extend(
         per_target_rows(y_true, pred_current, format_names, "current_per_format_models_quant", EPS)
     )
