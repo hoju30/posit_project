@@ -44,7 +44,6 @@
 公平比較舊架構 baseline 與目前模型。  
 可比較：
   - `old_ir2vec_stats_multioutput`
-  - `old_ir2vec_stats_cfg_multioutput`
   - `current_per_format_models_quant`
   - calibrated / selective calibrated 版本
 

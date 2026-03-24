@@ -23,20 +23,11 @@
     "vec_scale": 1024,
     "rows_scale": 16,
     "cols_scale": 1024,
-    "cfg_dim": 8,
-    "cfg_feat_names": [
-      "bb_count",
-      "edge_count",
-      "avg_succ",
-      "branch_bb_frac",
-      "instr_log1p",
-      "has_cycle",
-      "cycle_edge_frac",
-      "largest_scc_frac"
-    ],
-    "shared_feat_dim": 63,
+    "cfg_dim": 0,
+    "cfg_feat_names": [],
+    "shared_feat_dim": 55,
     "format_feat_dim": 14,
-    "extra_dim": 77,
+    "extra_dim": 69,
     "format_feat_names": [
       "format_n_norm",
       "format_es_norm",
@@ -410,128 +401,17 @@
         }
       }
     },
-    "ir2vec_stats_cfg": {
-      "in_domain": {
-        "metrics": {
-          "mae": 3464.0322265625,
-          "rmse": 956794.6875,
-          "mape": 7.3706440925598145,
-          "pick_acc": 0.6173141891891892,
-          "mean_regret": 2.1209514144970854e-08,
-          "median_regret": 0.0
-        },
-        "x_dim": 363,
-        "calibration": {
-          "metric": "mape",
-          "selected_formats": [
-            "posit_16_0",
-            "posit_16_2",
-            "posit_32_0",
-            "posit_32_1",
-            "posit_32_2",
-            "posit_8_1",
-            "posit_8_2"
-          ],
-          "selected_count": 7,
-          "selective_summary": {
-            "posit_8_0": {
-              "use_calibrated": false,
-              "base_mape": 44.34365463256836,
-              "calibrated_mape": 63.403788137888895
-            },
-            "posit_8_1": {
-              "use_calibrated": true,
-              "base_mape": 3.1352999210357666,
-              "calibrated_mape": 3.0289227586087346
-            },
-            "posit_8_2": {
-              "use_calibrated": true,
-              "base_mape": 2.648287296295166,
-              "calibrated_mape": 2.393623908751724
-            },
-            "posit_16_0": {
-              "use_calibrated": true,
-              "base_mape": 4.585481643676758,
-              "calibrated_mape": 4.368368386677622
-            },
-            "posit_16_1": {
-              "use_calibrated": false,
-              "base_mape": 63.04426574707031,
-              "calibrated_mape": 65.3307091434665
-            },
-            "posit_16_2": {
-              "use_calibrated": true,
-              "base_mape": 6.839162826538086,
-              "calibrated_mape": 6.475191900191937
-            },
-            "posit_32_0": {
-              "use_calibrated": true,
-              "base_mape": 5.5515360832214355,
-              "calibrated_mape": 5.273133708865953
-            },
-            "posit_32_1": {
-              "use_calibrated": true,
-              "base_mape": 12.546814918518066,
-              "calibrated_mape": 12.15126113420123
-            },
-            "posit_32_2": {
-              "use_calibrated": true,
-              "base_mape": 5.192439556121826,
-              "calibrated_mape": 5.050872785351873
-            }
-          },
-          "raw_summary": {
-            "posit_8_0": {
-              "slope": 1.0368432571555581,
-              "intercept": -0.01045900008588753
-            },
-            "posit_8_1": {
-              "slope": 1.100522875467743,
-              "intercept": 0.023379615396824746
-            },
-            "posit_8_2": {
-              "slope": 1.1336001644256146,
-              "intercept": 0.04559220399892665
-            },
-            "posit_16_0": {
-              "slope": 1.0575365354901314,
-              "intercept": 0.08339342263078618
-            },
-            "posit_16_1": {
-              "slope": 1.078859106538451,
-              "intercept": 0.1874991873021047
-            },
-            "posit_16_2": {
-              "slope": 1.0958721579816657,
-              "intercept": 0.24862519457667898
-            },
-            "posit_32_0": {
-              "slope": 1.054003859751699,
-              "intercept": 0.33294574197322513
-            },
-            "posit_32_1": {
-              "slope": 1.05662749514012,
-              "intercept": 0.4126764865058531
-            },
-            "posit_32_2": {
-              "slope": 1.0947839156530828,
-              "intercept": 0.710522501817102
-            }
-          }
-        }
-      }
-    },
     "full_no_quant": {
       "in_domain": {
         "metrics": {
-          "mae": 3465.006591796875,
-          "rmse": 956749.3125,
-          "mape": 6.988897323608398,
-          "pick_acc": 0.6137668918918919,
-          "mean_regret": 2.3304737695184485e-08,
+          "mae": 3464.833740234375,
+          "rmse": 956767.5625,
+          "mape": 7.038704872131348,
+          "pick_acc": 0.6188344594594595,
+          "mean_regret": 2.253408304397908e-08,
           "median_regret": 0.0
         },
-        "x_dim": 365,
+        "x_dim": 357,
         "calibration": {
           "metric": "mape",
           "selected_formats": [
@@ -547,86 +427,86 @@
           "selective_summary": {
             "posit_8_0": {
               "use_calibrated": false,
-              "base_mape": 54.09775161743164,
-              "calibrated_mape": 76.59743869931481
+              "base_mape": 44.75344467163086,
+              "calibrated_mape": 64.1696259844117
             },
             "posit_8_1": {
               "use_calibrated": true,
-              "base_mape": 3.153453826904297,
-              "calibrated_mape": 3.0576259929161247
+              "base_mape": 3.1217281818389893,
+              "calibrated_mape": 3.0167960467507013
             },
             "posit_8_2": {
               "use_calibrated": true,
-              "base_mape": 2.56968355178833,
-              "calibrated_mape": 2.314887398071305
+              "base_mape": 2.6379082202911377,
+              "calibrated_mape": 2.3719240624847595
             },
             "posit_16_0": {
               "use_calibrated": true,
-              "base_mape": 4.355688095092773,
-              "calibrated_mape": 4.142087489257542
+              "base_mape": 4.463505268096924,
+              "calibrated_mape": 4.252554630076303
             },
             "posit_16_1": {
               "use_calibrated": false,
-              "base_mape": 62.76731872558594,
-              "calibrated_mape": 65.24533792672909
+              "base_mape": 63.25581359863281,
+              "calibrated_mape": 65.74495889571087
             },
             "posit_16_2": {
               "use_calibrated": true,
-              "base_mape": 6.763896942138672,
-              "calibrated_mape": 6.4120300120331
+              "base_mape": 7.018400192260742,
+              "calibrated_mape": 6.645393254897327
             },
             "posit_32_0": {
               "use_calibrated": true,
-              "base_mape": 5.481327056884766,
-              "calibrated_mape": 5.208532340995054
+              "base_mape": 5.612861156463623,
+              "calibrated_mape": 5.322690316762326
             },
             "posit_32_1": {
               "use_calibrated": true,
-              "base_mape": 11.898621559143066,
-              "calibrated_mape": 11.537260640413322
+              "base_mape": 12.321452140808105,
+              "calibrated_mape": 11.97763859709266
             },
             "posit_32_2": {
               "use_calibrated": true,
-              "base_mape": 5.160213947296143,
-              "calibrated_mape": 5.021135971086183
+              "base_mape": 5.146178245544434,
+              "calibrated_mape": 4.992909219700793
             }
           },
           "raw_summary": {
             "posit_8_0": {
-              "slope": 1.0341065314940903,
-              "intercept": -0.009222731670077464
+              "slope": 1.0366310582240688,
+              "intercept": -0.010420226449722531
             },
             "posit_8_1": {
-              "slope": 1.1017576643905227,
-              "intercept": 0.024963003501497664
+              "slope": 1.103011494856761,
+              "intercept": 0.023639636283825687
             },
             "posit_8_2": {
-              "slope": 1.1350158065216274,
-              "intercept": 0.04599885704677316
+              "slope": 1.140003640144498,
+              "intercept": 0.047750625228665314
             },
             "posit_16_0": {
-              "slope": 1.0598796745031362,
-              "intercept": 0.08739554972573813
+              "slope": 1.0570576054120717,
+              "intercept": 0.08236466577422161
             },
             "posit_16_1": {
-              "slope": 1.0762738606335431,
-              "intercept": 0.1834056884569362
+              "slope": 1.0779280289592226,
+              "intercept": 0.18668313637820155
             },
             "posit_16_2": {
-              "slope": 1.0972321835803904,
-              "intercept": 0.2535605477296027
+              "slope": 1.0973453552106132,
+              "intercept": 0.2521636105909195
             },
             "posit_32_0": {
-              "slope": 1.0529227511919952,
-              "intercept": 0.32656745215597877
+              "slope": 1.0553015018030285,
+              "intercept": 0.34065931972952457
             },
             "posit_32_1": {
-              "slope": 1.0548318428894952,
-              "intercept": 0.40076537293940695
+              "slope": 1.058529061874522,
+              "intercept": 0.42657964635499745
             },
             "posit_32_2": {
-              "slope": 1.0945164609163371,
-              "intercept": 0.7086917146287012
+              "slope": 1.0977321774671163,
+              "intercept": 0.732875221869508
             }
           }
         }
@@ -635,14 +515,14 @@
     "full_quant": {
       "in_domain": {
         "metrics": {
-          "mae": 3462.081787109375,
-          "rmse": 956735.8125,
-          "mape": 7.181654930114746,
-          "pick_acc": 0.6180743243243243,
-          "mean_regret": 2.2619106587740134e-08,
+          "mae": 3461.031494140625,
+          "rmse": 956799.8125,
+          "mape": 6.999579906463623,
+          "pick_acc": 0.6202702702702703,
+          "mean_regret": 2.3108690072604077e-08,
           "median_regret": 0.0
         },
-        "x_dim": 377,
+        "x_dim": 369,
         "calibration": {
           "metric": "mape",
           "selected_formats": [
@@ -658,86 +538,86 @@
           "selective_summary": {
             "posit_8_0": {
               "use_calibrated": false,
-              "base_mape": 41.95643997192383,
-              "calibrated_mape": 57.77336252611452
+              "base_mape": 45.35438919067383,
+              "calibrated_mape": 59.76059999007809
             },
             "posit_8_1": {
               "use_calibrated": true,
-              "base_mape": 3.047002077102661,
-              "calibrated_mape": 2.968123087255554
+              "base_mape": 3.009497880935669,
+              "calibrated_mape": 2.942831514033738
             },
             "posit_8_2": {
               "use_calibrated": true,
-              "base_mape": 2.557523250579834,
-              "calibrated_mape": 2.3495966997896476
+              "base_mape": 2.484208822250366,
+              "calibrated_mape": 2.2741572425565213
             },
             "posit_16_0": {
               "use_calibrated": true,
-              "base_mape": 4.331951141357422,
-              "calibrated_mape": 4.171247641096055
+              "base_mape": 4.4597554206848145,
+              "calibrated_mape": 4.2794215376791565
             },
             "posit_16_1": {
               "use_calibrated": false,
-              "base_mape": 54.68971633911133,
-              "calibrated_mape": 55.938819943818594
+              "base_mape": 61.634124755859375,
+              "calibrated_mape": 63.80858716472645
             },
             "posit_16_2": {
               "use_calibrated": true,
-              "base_mape": 6.5727128982543945,
-              "calibrated_mape": 6.243296926528826
+              "base_mape": 5.963500499725342,
+              "calibrated_mape": 5.6316763942521
             },
             "posit_32_0": {
               "use_calibrated": true,
-              "base_mape": 5.560520648956299,
-              "calibrated_mape": 5.258237366446304
+              "base_mape": 5.66372013092041,
+              "calibrated_mape": 5.34196279962258
             },
             "posit_32_1": {
               "use_calibrated": true,
-              "base_mape": 11.918021202087402,
-              "calibrated_mape": 11.561287848152805
+              "base_mape": 12.50681209564209,
+              "calibrated_mape": 12.109154139735523
             },
             "posit_32_2": {
               "use_calibrated": true,
-              "base_mape": 5.187801361083984,
-              "calibrated_mape": 5.035089037944182
+              "base_mape": 5.181276798248291,
+              "calibrated_mape": 5.039457168000682
             }
           },
           "raw_summary": {
             "posit_8_0": {
-              "slope": 1.0326515106382324,
-              "intercept": -0.008376882879991497
+              "slope": 1.027944923886688,
+              "intercept": -0.008151988352435401
             },
             "posit_8_1": {
-              "slope": 1.0895854761288075,
-              "intercept": 0.021749892561355597
+              "slope": 1.0873803740299801,
+              "intercept": 0.02249411114134433
             },
             "posit_8_2": {
-              "slope": 1.109436861902834,
-              "intercept": 0.036540951869768516
+              "slope": 1.109917004906058,
+              "intercept": 0.036560843330341986
             },
             "posit_16_0": {
-              "slope": 1.0547289695387088,
-              "intercept": 0.08096726707744391
+              "slope": 1.052430087788313,
+              "intercept": 0.07643455271499865
             },
             "posit_16_1": {
-              "slope": 1.0693610321739035,
-              "intercept": 0.16566496035372916
+              "slope": 1.068983603990036,
+              "intercept": 0.166178472633292
             },
             "posit_16_2": {
-              "slope": 1.0845874360915977,
-              "intercept": 0.21888526338174003
+              "slope": 1.0817061824123688,
+              "intercept": 0.21001011842748352
             },
             "posit_32_0": {
-              "slope": 1.0553421816707707,
-              "intercept": 0.34112159384354457
+              "slope": 1.0568428274678716,
+              "intercept": 0.3497039711869876
             },
             "posit_32_1": {
-              "slope": 1.0531862628015256,
-              "intercept": 0.38734555909647744
+              "slope": 1.0547241869536323,
+              "intercept": 0.39885143434777903
             },
             "posit_32_2": {
-              "slope": 1.0933901401901776,
-              "intercept": 0.6993681533215065
+              "slope": 1.0903087763718493,
+              "intercept": 0.6762528766842029
             }
           }
         }
