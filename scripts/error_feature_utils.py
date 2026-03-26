@@ -26,12 +26,11 @@ DERIVED_STAT_FIELDS = [
     "standardized_mean",
     "center_decade",
     "span_decades",
-    "upper_excess_es0",
-    "lower_excess_es0",
-    "upper_excess_es1",
-    "lower_excess_es1",
-    "upper_excess_es2",
-    "lower_excess_es2",
+]
+
+CURRENT_ES_DERIVED_FIELDS = [
+    "upper_excess_current_es",
+    "lower_excess_current_es",
 ]
 
 FORMAT_DEP_FIELDS = [
@@ -76,11 +75,6 @@ def derived_stats_map(stats_map: dict[str, float], eps: float = DEFAULT_EPS) -> 
         "span_decades": math.log10(abs_p99) - math.log10(abs_p01),
     }
 
-    for es in (0, 1, 2):
-        log10_useed = (2**es) * math.log10(2.0)
-        feats[f"upper_excess_es{es}"] = max(0.0, math.log10(abs_p99) - log10_useed)
-        feats[f"lower_excess_es{es}"] = max(0.0, -log10_useed - math.log10(abs_p01))
-
     return feats
 
 
@@ -89,12 +83,41 @@ def derived_stats_features(stats_map: dict[str, float], eps: float = DEFAULT_EPS
     return [float(feats[name]) for name in DERIVED_STAT_FIELDS]
 
 
+def current_es_excess_map(
+    stats_map: dict[str, float],
+    es: int,
+    eps: float = DEFAULT_EPS,
+) -> dict[str, float]:
+    p01 = float(stats_map.get("p01", 0.0))
+    p99 = float(stats_map.get("p99", 0.0))
+    abs_p01 = abs(p01) + eps
+    abs_p99 = abs(p99) + eps
+    log10_useed = (2**int(es)) * math.log10(2.0)
+    return {
+        "upper_excess_current_es": max(0.0, math.log10(abs_p99) - log10_useed),
+        "lower_excess_current_es": max(0.0, -log10_useed - math.log10(abs_p01)),
+    }
+
+
+def current_es_excess_features(
+    stats_map: dict[str, float],
+    es: int,
+    eps: float = DEFAULT_EPS,
+) -> list[float]:
+    feats = current_es_excess_map(stats_map, es=es, eps=eps)
+    return [float(feats[name]) for name in CURRENT_ES_DERIVED_FIELDS]
+
+
 def prefixed_raw_stat_names(prefix: str) -> list[str]:
     return [f"{prefix}_{name}" for name in RAW_STAT_FIELDS]
 
 
 def prefixed_derived_stat_names(prefix: str) -> list[str]:
     return [f"{prefix}_{name}" for name in DERIVED_STAT_FIELDS]
+
+
+def prefixed_current_es_names(prefix: str) -> list[str]:
+    return [f"{prefix}_{name}" for name in CURRENT_ES_DERIVED_FIELDS]
 
 
 def prefixed_quant_feat_names(prefix: str) -> list[str]:

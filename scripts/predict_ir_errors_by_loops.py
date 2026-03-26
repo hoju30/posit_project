@@ -5,8 +5,9 @@ Predict per-format relative errors for each extracted loop segment (mixed-precis
 Workflow:
   1) Split input IR into loop segments (default: extract outlined funcs by name)
   2) For each segment, run IR2Vec to get the 300-d program vector
-  3) Concatenate shared features (vec_len/rows/cols/alpha/beta + runtime stats + CFG)
-  4) For each posit format, append format features (n/es) and run the per-format regressor
+  3) Concatenate shared features (vec_len/rows/cols/alpha/beta + runtime stats)
+  4) For each posit format, append format-aware features (current-es excess + quant stats)
+     and run the per-format regressor
   5) Optionally pick a per-segment format (mixed precision) and write a JSON plan
 
 This script does NOT rewrite IR. It produces a decision plan you can feed into an LLVM/MLIR pass later.
@@ -29,6 +30,7 @@ import numpy as np
 
 from error_feature_utils import (
     RAW_STAT_FIELDS,
+    current_es_excess_features,
     derived_stats_features,
     parse_format_name,
     raw_stats_features,
@@ -293,12 +295,18 @@ def build_shared_feature(
     return feat
 
 
-def build_format_feature(shared_feat: np.ndarray, n: int, es: int, meta: dict[str, Any]) -> np.ndarray:
-    format_feat_dim = int(meta.get("format_feat_dim", 2))
-    format_feats = [float(n) / 32.0, float(es) / 2.0]
+def build_format_feature(
+    shared_feat: np.ndarray,
+    stats: RuntimeStats,
+    es: int,
+    meta: dict[str, Any],
+) -> np.ndarray:
+    format_feat_dim = int(meta.get("format_feat_dim", 0))
+    current_es_feats = current_es_excess_features(stats.x, es=es) + current_es_excess_features(stats.y, es=es)
+    format_feats = current_es_feats
     if format_feat_dim > len(format_feats):
         format_feats.extend([0.0] * (format_feat_dim - len(format_feats)))
-    return np.concatenate([shared_feat, np.asarray(format_feats[:format_feat_dim], dtype=np.float32)]).reshape(1, -1)
+    return np.concatenate([shared_feat, np.asarray(format_feats, dtype=np.float32)]).reshape(1, -1)
 
 
 def pick_format(
@@ -508,8 +516,8 @@ def main() -> None:
         )
         feat_mat = []
         for name in format_names:
-            n, es = parse_format_name(str(name))
-            feat = build_format_feature(shared_feat, n, es, meta).reshape(-1)
+            _, es = parse_format_name(str(name))
+            feat = build_format_feature(shared_feat, stats, es, meta).reshape(-1)
             if quant_feat_names:
                 quant_vals = np.asarray(
                     [float(format_feature_map.get(str(name), {}).get(qname, 0.0)) for qname in quant_feat_names],

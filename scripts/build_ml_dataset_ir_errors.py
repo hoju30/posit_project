@@ -3,11 +3,14 @@ import pandas as pd
 from pathlib import Path
 
 from error_feature_utils import (
+    CURRENT_ES_DERIVED_FIELDS,
     DEFAULT_EPS,
     DERIVED_STAT_FIELDS,
     FORMAT_DEP_FIELDS,
     RAW_STAT_FIELDS,
+    current_es_excess_features,
     derived_stats_features,
+    prefixed_current_es_names,
     prefixed_derived_stat_names,
     prefixed_quant_feat_names,
     prefixed_raw_stat_names,
@@ -51,6 +54,7 @@ MAX_SAMPLES_PER_SETTING = 500
 EPS = DEFAULT_EPS
 STATS_DIM_PER_VEC = len(RAW_STAT_FIELDS)  # per x or y
 DERIVED_DIM_PER_VEC = len(DERIVED_STAT_FIELDS)
+CURRENT_ES_DIM_PER_VEC = len(CURRENT_ES_DERIVED_FIELDS)
 
 def expand_group_to_samples(df: pd.DataFrame, kernel_id: str):
     """
@@ -149,8 +153,8 @@ def main():
     cols_max = max(col_vals or [1])
 
     # 展開資料集：
-    # X = ir2vec + shared features(vec_len/rows/cols/alpha/beta + x/y stats + CFG)
-    #   + format features(n/es + x/y quant features)
+    # X = ir2vec + shared features(vec_len/rows/cols/alpha/beta + x/y stats)
+    #   + format features(x/y quant features)
     # Y = 該 format 的單一 rel_err
     X_list, Y_list, ids_list = [], [], []
     for rec in records:
@@ -195,7 +199,12 @@ def main():
             quant_feats = [float(quant_map.get(f"x_{field}", 0.0)) for field in FORMAT_DEP_FIELDS] + [
                 float(quant_map.get(f"y_{field}", 0.0)) for field in FORMAT_DEP_FIELDS
             ]
-            format_feats = np.array([n / 32.0, es / 2.0] + quant_feats, dtype=np.float32)
+            x_stats_map = {field: float(rec.get(f"x_{field}", 0.0)) for field in RAW_STAT_FIELDS}
+            y_stats_map = {field: float(rec.get(f"y_{field}", 0.0)) for field in RAW_STAT_FIELDS}
+            current_es_feats = current_es_excess_features(x_stats_map, es=es, eps=EPS) + current_es_excess_features(
+                y_stats_map, es=es, eps=EPS
+            )
+            format_feats = np.array(current_es_feats + quant_feats, dtype=np.float32)
             feat = np.concatenate([shared_feat, format_feats])
 
             X_list.append(feat)
@@ -209,8 +218,15 @@ def main():
 
     X_out = np.stack(X_list, axis=0)
     Y_out = np.asarray(Y_list, dtype=np.float32)
+    stats_feat_names = (
+        prefixed_raw_stat_names("x")
+        + prefixed_raw_stat_names("y")
+        + prefixed_derived_stat_names("x")
+        + prefixed_derived_stat_names("y")
+    )
+    current_es_feat_names = prefixed_current_es_names("x") + prefixed_current_es_names("y")
     quant_feat_names = prefixed_quant_feat_names("x") + prefixed_quant_feat_names("y")
-    format_feat_names = ["format_n_norm", "format_es_norm"] + quant_feat_names
+    format_feat_names = current_es_feat_names + quant_feat_names
     shared_feat_dim = 5 + 2 * STATS_DIM_PER_VEC + 2 * DERIVED_DIM_PER_VEC + cfg_dim
     format_feat_dim = len(format_feat_names)
 
@@ -229,6 +245,9 @@ def main():
             "cfg_feat_names": [],
             "shared_feat_dim": shared_feat_dim,
             "format_feat_dim": format_feat_dim,
+            "stats_dim": len(stats_feat_names),
+            "current_es_dim": len(current_es_feat_names),
+            "quant_dim": len(quant_feat_names),
             "extra_dim": shared_feat_dim + format_feat_dim,
             "format_feat_names": format_feat_names,
             "format_names": FORMAT_NAMES,
@@ -236,10 +255,8 @@ def main():
             "vec_lens": sorted(set(vec_vals)),
             "rows_vals": sorted(set(row_vals)),
             "cols_vals": sorted(set(col_vals)),
-            "stats_feat_names": prefixed_raw_stat_names("x")
-            + prefixed_raw_stat_names("y")
-            + prefixed_derived_stat_names("x")
-            + prefixed_derived_stat_names("y"),
+            "stats_feat_names": stats_feat_names,
+            "current_es_feat_names": current_es_feat_names,
             "quant_feat_names": quant_feat_names,
             "eps": EPS,
         }, dtype=object),

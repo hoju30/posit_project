@@ -8,6 +8,7 @@ from pathlib import Path
 
 from error_feature_utils import (
     RAW_STAT_FIELDS,
+    current_es_excess_features,
     derived_stats_features,
     parse_format_name,
     raw_stats_features,
@@ -100,12 +101,19 @@ def build_shared_feature(
     )
 
 
-def build_format_feature(shared_feat: np.ndarray, n: int, es: int, meta: dict[str, object]) -> np.ndarray:
-    format_feat_dim = int(meta.get("format_feat_dim", 2))
-    format_feats = [float(n) / 32.0, float(es) / 2.0]
+def build_format_feature(
+    shared_feat: np.ndarray,
+    x_stats_map: dict[str, float],
+    y_stats_map: dict[str, float],
+    es: int,
+    meta: dict[str, object],
+) -> np.ndarray:
+    format_feat_dim = int(meta.get("format_feat_dim", 0))
+    current_es_feats = current_es_excess_features(x_stats_map, es=es) + current_es_excess_features(y_stats_map, es=es)
+    format_feats = current_es_feats
     if format_feat_dim > len(format_feats):
         format_feats.extend([0.0] * (format_feat_dim - len(format_feats)))
-    return np.concatenate([shared_feat, np.asarray(format_feats[:format_feat_dim], dtype=np.float32)]).reshape(1, -1)
+    return np.concatenate([shared_feat, np.asarray(format_feats, dtype=np.float32)]).reshape(1, -1)
 
 
 def main():
@@ -154,10 +162,12 @@ def main():
 
     ir_vec = load_ir2vec_vector(args.ir)
     shared_feat = build_shared_feature(args.ir, ir_vec, args, meta)
+    x_stats_map = {name: float(getattr(args, f"x_{name}")) for name in RAW_STAT_FIELDS}
+    y_stats_map = {name: float(getattr(args, f"y_{name}")) for name in RAW_STAT_FIELDS}
     feat_mat = []
     for name in format_names:
-        n, es = parse_format_name(str(name))
-        feat = build_format_feature(shared_feat, n, es, meta).reshape(-1)
+        _, es = parse_format_name(str(name))
+        feat = build_format_feature(shared_feat, x_stats_map, y_stats_map, es, meta).reshape(-1)
         if quant_feat_names:
             fmt_map = format_feature_map.get(str(name), {})
             quant_vals = np.asarray([float(fmt_map.get(qname, 0.0)) for qname in quant_feat_names], dtype=np.float32)
