@@ -1,0 +1,52 @@
+{
+  "ir": "/home/hoju/test/polybench-c-3.2/atax.ll",
+  "pred_rel_err": {
+    "posit_8_0": 0.7377896785408131,
+    "posit_8_1": 0.599972473422006,
+    "posit_8_2": 0.6165671461205452,
+    "posit_16_0": 0.01961658234372378,
+    "posit_16_1": 0.009335278405783881,
+    "posit_16_2": 0.0047343459111378215,
+    "posit_32_0": 1.762980106754218e-07,
+    "posit_32_1": 6.733251950928833e-08,
+    "posit_32_2": 5.656217907952817e-08
+  },
+  "meta": {
+    "vec_len": 4000.0,
+    "rows": 4000.0,
+    "cols": 4000.0,
+    "alpha": 0.0,
+    "beta": 0.0,
+    "x_stats": {
+      "mean": 0.0,
+      "std": 1.0,
+      "min": -3.0,
+      "max": 3.0,
+      "abs_max": 3.0,
+      "skewness": 0.0,
+      "excess_kurtosis": 0.0,
+      "p01": -2.3,
+      "p50": 0.0,
+      "p99": 2.3,
+      "near_zero_ratio": 0.01,
+      "pos_ratio": 0.5,
+      "neg_ratio": 0.5
+    },
+    "y_stats": {
+      "mean": 0.0,
+      "std": 1.0,
+      "min": -3.0,
+      "max": 3.0,
+      "abs_max": 3.0,
+      "skewness": 0.0,
+      "excess_kurtosis": 0.0,
+      "p01": -2.3,
+      "p50": 0.0,
+      "p99": 2.3,
+      "near_zero_ratio": 0.01,
+      "pos_ratio": 0.5,
+      "neg_ratio": 0.5
+    },
+    "format_features_json": null
+  }
+}

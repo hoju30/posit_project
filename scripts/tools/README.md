@@ -1,6 +1,6 @@
 # scripts/tools
 
-放一些「串接 / 實驗」用的小工具（不一定每次都會跑）。
+放一些「串接 / 實驗」用的小工具（不一定每次都會跑）。這個目錄主要服務 loop / MLIR pass；benchmark 驗證與一般 regression 評估腳本在上一層 `scripts/`。
 
 ## 檔案
 
@@ -18,4 +18,3 @@
 - `build_loop_plan_from_marked_segments.py`
   - 建議使用：依 `__posit_loop_marker(i64 hash)` 做 segment↔loop_id 對應（比較穩健）
   - 需要先在 MLIR 跑 `--posit-insert-loop-marker`
-

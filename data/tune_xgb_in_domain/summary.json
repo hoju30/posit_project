@@ -1,0 +1,786 @@
+{
+  "data": "/home/hoju/test/posit_test/data/ml_dataset_ir_errors.npz",
+  "seed": 0,
+  "test_ratio": 0.2,
+  "calibration_ratio": 0.15,
+  "calibration_select_metric": "mape",
+  "sort_by": "mape",
+  "random_forest_baseline": {
+    "metrics": {
+      "mae": 3465.60400390625,
+      "rmse": 956774.875,
+      "mape": 6.942766189575195,
+      "pick_acc": 0.6157939189189189
+    },
+    "selected_formats": [
+      "posit_16_0",
+      "posit_16_2",
+      "posit_32_0",
+      "posit_32_1",
+      "posit_32_2",
+      "posit_8_1",
+      "posit_8_2"
+    ],
+    "selected_count": 7,
+    "selective_summary": {
+      "posit_8_0": {
+        "use_calibrated": false,
+        "base_mape": 42.25175476074219,
+        "calibrated_mape": 57.2791336233502
+      },
+      "posit_8_1": {
+        "use_calibrated": true,
+        "base_mape": 2.9740607738494873,
+        "calibrated_mape": 2.8869575363536173
+      },
+      "posit_8_2": {
+        "use_calibrated": true,
+        "base_mape": 2.5677666664123535,
+        "calibrated_mape": 2.3328081373421172
+      },
+      "posit_16_0": {
+        "use_calibrated": true,
+        "base_mape": 4.507418155670166,
+        "calibrated_mape": 4.309495103945165
+      },
+      "posit_16_1": {
+        "use_calibrated": false,
+        "base_mape": 57.335670471191406,
+        "calibrated_mape": 59.09201994021232
+      },
+      "posit_16_2": {
+        "use_calibrated": true,
+        "base_mape": 6.142491817474365,
+        "calibrated_mape": 5.779296366470555
+      },
+      "posit_32_0": {
+        "use_calibrated": true,
+        "base_mape": 5.641170978546143,
+        "calibrated_mape": 5.304644438994017
+      },
+      "posit_32_1": {
+        "use_calibrated": true,
+        "base_mape": 12.536250114440918,
+        "calibrated_mape": 11.987377087626426
+      },
+      "posit_32_2": {
+        "use_calibrated": true,
+        "base_mape": 5.22487735748291,
+        "calibrated_mape": 5.084036066167919
+      }
+    },
+    "calibration_summary": {
+      "posit_8_0": {
+        "slope": 1.031257745104996,
+        "intercept": -0.009113758323482714
+      },
+      "posit_8_1": {
+        "slope": 1.103555931496211,
+        "intercept": 0.026358666535018834
+      },
+      "posit_8_2": {
+        "slope": 1.1228160667740554,
+        "intercept": 0.0417305309980888
+      },
+      "posit_16_0": {
+        "slope": 1.0569617157578588,
+        "intercept": 0.08317186888391082
+      },
+      "posit_16_1": {
+        "slope": 1.0770467091846951,
+        "intercept": 0.18455923528877663
+      },
+      "posit_16_2": {
+        "slope": 1.09219320841604,
+        "intercept": 0.23833427136580315
+      },
+      "posit_32_0": {
+        "slope": 1.0617709990430513,
+        "intercept": 0.38060616334432656
+      },
+      "posit_32_1": {
+        "slope": 1.0650097857328484,
+        "intercept": 0.4722035827123099
+      },
+      "posit_32_2": {
+        "slope": 1.1044598951679865,
+        "intercept": 0.7832101952535392
+      }
+    }
+  },
+  "best_candidate": {
+    "name": "xgb_mape_4",
+    "n_estimators": 600,
+    "max_depth": 4,
+    "learning_rate": 0.02,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "reg_lambda": 4.0,
+    "min_child_weight": 5.0,
+    "mae": 3443.4658203125,
+    "rmse": 956581.1875,
+    "mape": 8.406771659851074,
+    "pick_acc": 0.6226351351351351
+  },
+  "runs": {
+    "random_forest_baseline": {
+      "metrics": {
+        "mae": 3465.60400390625,
+        "rmse": 956774.875,
+        "mape": 6.942766189575195,
+        "pick_acc": 0.6157939189189189
+      },
+      "selected_formats": [
+        "posit_16_0",
+        "posit_16_2",
+        "posit_32_0",
+        "posit_32_1",
+        "posit_32_2",
+        "posit_8_1",
+        "posit_8_2"
+      ],
+      "selected_count": 7,
+      "selective_summary": {
+        "posit_8_0": {
+          "use_calibrated": false,
+          "base_mape": 42.25175476074219,
+          "calibrated_mape": 57.2791336233502
+        },
+        "posit_8_1": {
+          "use_calibrated": true,
+          "base_mape": 2.9740607738494873,
+          "calibrated_mape": 2.8869575363536173
+        },
+        "posit_8_2": {
+          "use_calibrated": true,
+          "base_mape": 2.5677666664123535,
+          "calibrated_mape": 2.3328081373421172
+        },
+        "posit_16_0": {
+          "use_calibrated": true,
+          "base_mape": 4.507418155670166,
+          "calibrated_mape": 4.309495103945165
+        },
+        "posit_16_1": {
+          "use_calibrated": false,
+          "base_mape": 57.335670471191406,
+          "calibrated_mape": 59.09201994021232
+        },
+        "posit_16_2": {
+          "use_calibrated": true,
+          "base_mape": 6.142491817474365,
+          "calibrated_mape": 5.779296366470555
+        },
+        "posit_32_0": {
+          "use_calibrated": true,
+          "base_mape": 5.641170978546143,
+          "calibrated_mape": 5.304644438994017
+        },
+        "posit_32_1": {
+          "use_calibrated": true,
+          "base_mape": 12.536250114440918,
+          "calibrated_mape": 11.987377087626426
+        },
+        "posit_32_2": {
+          "use_calibrated": true,
+          "base_mape": 5.22487735748291,
+          "calibrated_mape": 5.084036066167919
+        }
+      },
+      "calibration_summary": {
+        "posit_8_0": {
+          "slope": 1.031257745104996,
+          "intercept": -0.009113758323482714
+        },
+        "posit_8_1": {
+          "slope": 1.103555931496211,
+          "intercept": 0.026358666535018834
+        },
+        "posit_8_2": {
+          "slope": 1.1228160667740554,
+          "intercept": 0.0417305309980888
+        },
+        "posit_16_0": {
+          "slope": 1.0569617157578588,
+          "intercept": 0.08317186888391082
+        },
+        "posit_16_1": {
+          "slope": 1.0770467091846951,
+          "intercept": 0.18455923528877663
+        },
+        "posit_16_2": {
+          "slope": 1.09219320841604,
+          "intercept": 0.23833427136580315
+        },
+        "posit_32_0": {
+          "slope": 1.0617709990430513,
+          "intercept": 0.38060616334432656
+        },
+        "posit_32_1": {
+          "slope": 1.0650097857328484,
+          "intercept": 0.4722035827123099
+        },
+        "posit_32_2": {
+          "slope": 1.1044598951679865,
+          "intercept": 0.7832101952535392
+        }
+      }
+    },
+    "xgb_base": {
+      "params": {
+        "name": "xgb_base",
+        "n_estimators": 300,
+        "max_depth": 6,
+        "learning_rate": 0.05,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "reg_lambda": 1.0,
+        "min_child_weight": 1.0
+      },
+      "metrics": {
+        "mae": 3451.89794921875,
+        "rmse": 956344.6875,
+        "mape": 10.696943283081055,
+        "pick_acc": 0.6193412162162162
+      },
+      "selected_formats": [
+        "posit_16_0",
+        "posit_16_2",
+        "posit_32_0",
+        "posit_32_2",
+        "posit_8_2"
+      ],
+      "selected_count": 5,
+      "selective_summary": {
+        "posit_8_0": {
+          "use_calibrated": false,
+          "base_mape": 130.8845672607422,
+          "calibrated_mape": 138.50069763969844
+        },
+        "posit_8_1": {
+          "use_calibrated": false,
+          "base_mape": 2.967075824737549,
+          "calibrated_mape": 2.9706864111293907
+        },
+        "posit_8_2": {
+          "use_calibrated": true,
+          "base_mape": 2.3212943077087402,
+          "calibrated_mape": 2.257914965234541
+        },
+        "posit_16_0": {
+          "use_calibrated": true,
+          "base_mape": 3.9645907878875732,
+          "calibrated_mape": 3.9377449899767085
+        },
+        "posit_16_1": {
+          "use_calibrated": false,
+          "base_mape": 51.2132453918457,
+          "calibrated_mape": 51.55768623152824
+        },
+        "posit_16_2": {
+          "use_calibrated": true,
+          "base_mape": 5.796109199523926,
+          "calibrated_mape": 5.649763554853328
+        },
+        "posit_32_0": {
+          "use_calibrated": true,
+          "base_mape": 4.889235019683838,
+          "calibrated_mape": 4.803479969708693
+        },
+        "posit_32_1": {
+          "use_calibrated": false,
+          "base_mape": 13.444798469543457,
+          "calibrated_mape": 13.56337532650049
+        },
+        "posit_32_2": {
+          "use_calibrated": true,
+          "base_mape": 4.897373676300049,
+          "calibrated_mape": 4.836985667174667
+        }
+      },
+      "calibration_summary": {
+        "posit_8_0": {
+          "slope": 1.0043603252917488,
+          "intercept": 0.0010650809224587966
+        },
+        "posit_8_1": {
+          "slope": 1.0173577141351386,
+          "intercept": 0.004759719144367347
+        },
+        "posit_8_2": {
+          "slope": 1.0192480025847535,
+          "intercept": 0.0006807255322274795
+        },
+        "posit_16_0": {
+          "slope": 1.0041291051203813,
+          "intercept": 0.003395190043926752
+        },
+        "posit_16_1": {
+          "slope": 1.0101432652310318,
+          "intercept": 0.02591696635442565
+        },
+        "posit_16_2": {
+          "slope": 1.0197757761448119,
+          "intercept": 0.04548299981184073
+        },
+        "posit_32_0": {
+          "slope": 1.0132664907498006,
+          "intercept": 0.07884448539977165
+        },
+        "posit_32_1": {
+          "slope": 0.999482412390639,
+          "intercept": -8.179716967792203e-05
+        },
+        "posit_32_2": {
+          "slope": 1.0131144377699297,
+          "intercept": 0.09408281883475075
+        }
+      }
+    },
+    "xgb_mape_1": {
+      "params": {
+        "name": "xgb_mape_1",
+        "n_estimators": 500,
+        "max_depth": 4,
+        "learning_rate": 0.03,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "reg_lambda": 2.0,
+        "min_child_weight": 3.0
+      },
+      "metrics": {
+        "mae": 3439.983154296875,
+        "rmse": 956638.0,
+        "mape": 9.384370803833008,
+        "pick_acc": 0.6225506756756757
+      },
+      "selected_formats": [
+        "posit_16_2",
+        "posit_32_0",
+        "posit_32_2",
+        "posit_8_1",
+        "posit_8_2"
+      ],
+      "selected_count": 5,
+      "selective_summary": {
+        "posit_8_0": {
+          "use_calibrated": false,
+          "base_mape": 103.83324432373047,
+          "calibrated_mape": 118.4907924070726
+        },
+        "posit_8_1": {
+          "use_calibrated": true,
+          "base_mape": 3.0199472904205322,
+          "calibrated_mape": 3.0082354769916355
+        },
+        "posit_8_2": {
+          "use_calibrated": true,
+          "base_mape": 2.419203996658325,
+          "calibrated_mape": 2.31923450678563
+        },
+        "posit_16_0": {
+          "use_calibrated": false,
+          "base_mape": 4.507604122161865,
+          "calibrated_mape": 4.51194006250417
+        },
+        "posit_16_1": {
+          "use_calibrated": false,
+          "base_mape": 75.73747253417969,
+          "calibrated_mape": 77.725424296071
+        },
+        "posit_16_2": {
+          "use_calibrated": true,
+          "base_mape": 5.959416389465332,
+          "calibrated_mape": 5.791446421442521
+        },
+        "posit_32_0": {
+          "use_calibrated": true,
+          "base_mape": 5.035160541534424,
+          "calibrated_mape": 4.933269113711163
+        },
+        "posit_32_1": {
+          "use_calibrated": false,
+          "base_mape": 14.54483699798584,
+          "calibrated_mape": 14.565461710812658
+        },
+        "posit_32_2": {
+          "use_calibrated": true,
+          "base_mape": 4.965744972229004,
+          "calibrated_mape": 4.902212890272273
+        }
+      },
+      "calibration_summary": {
+        "posit_8_0": {
+          "slope": 1.011725517121851,
+          "intercept": -0.004180919047532132
+        },
+        "posit_8_1": {
+          "slope": 1.0425124174074867,
+          "intercept": 0.012013998569404213
+        },
+        "posit_8_2": {
+          "slope": 1.0441359785611648,
+          "intercept": 0.01143874193168294
+        },
+        "posit_16_0": {
+          "slope": 1.0148537664017068,
+          "intercept": 0.020696594715661903
+        },
+        "posit_16_1": {
+          "slope": 1.0248292547909237,
+          "intercept": 0.06321310441599794
+        },
+        "posit_16_2": {
+          "slope": 1.0329344984755167,
+          "intercept": 0.08189710274775626
+        },
+        "posit_32_0": {
+          "slope": 1.021030021026217,
+          "intercept": 0.12781895432059928
+        },
+        "posit_32_1": {
+          "slope": 1.0121235077230446,
+          "intercept": 0.09259526684362686
+        },
+        "posit_32_2": {
+          "slope": 1.0329134203199175,
+          "intercept": 0.2438771279439757
+        }
+      }
+    },
+    "xgb_mape_2": {
+      "params": {
+        "name": "xgb_mape_2",
+        "n_estimators": 400,
+        "max_depth": 5,
+        "learning_rate": 0.03,
+        "subsample": 0.7,
+        "colsample_bytree": 0.7,
+        "reg_lambda": 3.0,
+        "min_child_weight": 5.0
+      },
+      "metrics": {
+        "mae": 3445.455810546875,
+        "rmse": 955910.8125,
+        "mape": 8.974849700927734,
+        "pick_acc": 0.6194256756756756
+      },
+      "selected_formats": [
+        "posit_16_2",
+        "posit_32_0",
+        "posit_32_2",
+        "posit_8_2"
+      ],
+      "selected_count": 4,
+      "selective_summary": {
+        "posit_8_0": {
+          "use_calibrated": false,
+          "base_mape": 116.48847198486328,
+          "calibrated_mape": 130.19608942250682
+        },
+        "posit_8_1": {
+          "use_calibrated": false,
+          "base_mape": 3.063032627105713,
+          "calibrated_mape": 3.06453039416519
+        },
+        "posit_8_2": {
+          "use_calibrated": true,
+          "base_mape": 2.4260385036468506,
+          "calibrated_mape": 2.320969151434252
+        },
+        "posit_16_0": {
+          "use_calibrated": false,
+          "base_mape": 4.30070686340332,
+          "calibrated_mape": 4.304905550967596
+        },
+        "posit_16_1": {
+          "use_calibrated": false,
+          "base_mape": 63.07709503173828,
+          "calibrated_mape": 64.11207902945822
+        },
+        "posit_16_2": {
+          "use_calibrated": true,
+          "base_mape": 5.8071513175964355,
+          "calibrated_mape": 5.643698182627362
+        },
+        "posit_32_0": {
+          "use_calibrated": true,
+          "base_mape": 4.8615241050720215,
+          "calibrated_mape": 4.747964791035247
+        },
+        "posit_32_1": {
+          "use_calibrated": false,
+          "base_mape": 13.013630867004395,
+          "calibrated_mape": 13.043312890664437
+        },
+        "posit_32_2": {
+          "use_calibrated": true,
+          "base_mape": 5.009242057800293,
+          "calibrated_mape": 4.942200921776626
+        }
+      },
+      "calibration_summary": {
+        "posit_8_0": {
+          "slope": 1.0093454844603191,
+          "intercept": -0.0014806273649142334
+        },
+        "posit_8_1": {
+          "slope": 1.035516722301191,
+          "intercept": 0.010142230896946436
+        },
+        "posit_8_2": {
+          "slope": 1.0445509425513473,
+          "intercept": 0.010770009580047582
+        },
+        "posit_16_0": {
+          "slope": 1.0113793244635056,
+          "intercept": 0.015597128975797228
+        },
+        "posit_16_1": {
+          "slope": 1.0182570116367444,
+          "intercept": 0.04678123274411307
+        },
+        "posit_16_2": {
+          "slope": 1.03099531975552,
+          "intercept": 0.07635264674394969
+        },
+        "posit_32_0": {
+          "slope": 1.0179883815350372,
+          "intercept": 0.10794150647607162
+        },
+        "posit_32_1": {
+          "slope": 1.010112322148591,
+          "intercept": 0.07764992674122463
+        },
+        "posit_32_2": {
+          "slope": 1.030873168154484,
+          "intercept": 0.2283804755626471
+        }
+      }
+    },
+    "xgb_mape_3": {
+      "params": {
+        "name": "xgb_mape_3",
+        "n_estimators": 250,
+        "max_depth": 3,
+        "learning_rate": 0.05,
+        "subsample": 0.9,
+        "colsample_bytree": 0.9,
+        "reg_lambda": 5.0,
+        "min_child_weight": 8.0
+      },
+      "metrics": {
+        "mae": 3445.972412109375,
+        "rmse": 956519.3125,
+        "mape": 10.031590461730957,
+        "pick_acc": 0.625
+      },
+      "selected_formats": [
+        "posit_16_2",
+        "posit_32_0",
+        "posit_32_1",
+        "posit_32_2",
+        "posit_8_1",
+        "posit_8_2"
+      ],
+      "selected_count": 6,
+      "selective_summary": {
+        "posit_8_0": {
+          "use_calibrated": false,
+          "base_mape": 128.91651916503906,
+          "calibrated_mape": 166.97092775896996
+        },
+        "posit_8_1": {
+          "use_calibrated": true,
+          "base_mape": 3.3486487865448,
+          "calibrated_mape": 3.3108649590904284
+        },
+        "posit_8_2": {
+          "use_calibrated": true,
+          "base_mape": 2.600907564163208,
+          "calibrated_mape": 2.4706496476840436
+        },
+        "posit_16_0": {
+          "use_calibrated": false,
+          "base_mape": 6.266644477844238,
+          "calibrated_mape": 6.688439452176944
+        },
+        "posit_16_1": {
+          "use_calibrated": false,
+          "base_mape": 89.10427856445312,
+          "calibrated_mape": 93.92998652179382
+        },
+        "posit_16_2": {
+          "use_calibrated": true,
+          "base_mape": 6.072087287902832,
+          "calibrated_mape": 5.877858788097475
+        },
+        "posit_32_0": {
+          "use_calibrated": true,
+          "base_mape": 5.825483798980713,
+          "calibrated_mape": 5.647190824432231
+        },
+        "posit_32_1": {
+          "use_calibrated": true,
+          "base_mape": 13.076111793518066,
+          "calibrated_mape": 12.840282335703636
+        },
+        "posit_32_2": {
+          "use_calibrated": true,
+          "base_mape": 5.023904323577881,
+          "calibrated_mape": 4.962847434990392
+        }
+      },
+      "calibration_summary": {
+        "posit_8_0": {
+          "slope": 1.0221839537952102,
+          "intercept": -0.006902367649755119
+        },
+        "posit_8_1": {
+          "slope": 1.0738513844816988,
+          "intercept": 0.01897495472631703
+        },
+        "posit_8_2": {
+          "slope": 1.0582034007156034,
+          "intercept": 0.01607133034214781
+        },
+        "posit_16_0": {
+          "slope": 1.0408193990538603,
+          "intercept": 0.06083607630653407
+        },
+        "posit_16_1": {
+          "slope": 1.0466374649122252,
+          "intercept": 0.11712123636191779
+        },
+        "posit_16_2": {
+          "slope": 1.0502367394177445,
+          "intercept": 0.12964245547457212
+        },
+        "posit_32_0": {
+          "slope": 1.0428429676427786,
+          "intercept": 0.2636813151225878
+        },
+        "posit_32_1": {
+          "slope": 1.0332087130624399,
+          "intercept": 0.2460283586689926
+        },
+        "posit_32_2": {
+          "slope": 1.0517517680434134,
+          "intercept": 0.3873096246494084
+        }
+      }
+    },
+    "xgb_mape_4": {
+      "params": {
+        "name": "xgb_mape_4",
+        "n_estimators": 600,
+        "max_depth": 4,
+        "learning_rate": 0.02,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "reg_lambda": 4.0,
+        "min_child_weight": 5.0
+      },
+      "metrics": {
+        "mae": 3443.4658203125,
+        "rmse": 956581.1875,
+        "mape": 8.406771659851074,
+        "pick_acc": 0.6226351351351351
+      },
+      "selected_formats": [
+        "posit_16_2",
+        "posit_32_0",
+        "posit_32_1",
+        "posit_32_2",
+        "posit_8_1",
+        "posit_8_2"
+      ],
+      "selected_count": 6,
+      "selective_summary": {
+        "posit_8_0": {
+          "use_calibrated": false,
+          "base_mape": 120.56754302978516,
+          "calibrated_mape": 138.66251756344386
+        },
+        "posit_8_1": {
+          "use_calibrated": true,
+          "base_mape": 3.0618019104003906,
+          "calibrated_mape": 3.0487060665743844
+        },
+        "posit_8_2": {
+          "use_calibrated": true,
+          "base_mape": 2.4415323734283447,
+          "calibrated_mape": 2.331706161676247
+        },
+        "posit_16_0": {
+          "use_calibrated": false,
+          "base_mape": 4.751891613006592,
+          "calibrated_mape": 4.7860745869997
+        },
+        "posit_16_1": {
+          "use_calibrated": false,
+          "base_mape": 67.70677947998047,
+          "calibrated_mape": 69.40420577878245
+        },
+        "posit_16_2": {
+          "use_calibrated": true,
+          "base_mape": 5.968070030212402,
+          "calibrated_mape": 5.790203993944728
+        },
+        "posit_32_0": {
+          "use_calibrated": true,
+          "base_mape": 5.115012168884277,
+          "calibrated_mape": 4.988979798967013
+        },
+        "posit_32_1": {
+          "use_calibrated": true,
+          "base_mape": 12.801591873168945,
+          "calibrated_mape": 12.72666424409019
+        },
+        "posit_32_2": {
+          "use_calibrated": true,
+          "base_mape": 4.9633708000183105,
+          "calibrated_mape": 4.90016349859332
+        }
+      },
+      "calibration_summary": {
+        "posit_8_0": {
+          "slope": 1.0122617210912457,
+          "intercept": -0.004615147501246317
+        },
+        "posit_8_1": {
+          "slope": 1.0500194456192105,
+          "intercept": 0.013742304867436314
+        },
+        "posit_8_2": {
+          "slope": 1.0495164854254095,
+          "intercept": 0.013310845526897565
+        },
+        "posit_16_0": {
+          "slope": 1.0207795466548015,
+          "intercept": 0.029339063424449512
+        },
+        "posit_16_1": {
+          "slope": 1.029546580619845,
+          "intercept": 0.07413109967113767
+        },
+        "posit_16_2": {
+          "slope": 1.0376124190986908,
+          "intercept": 0.09456108728470282
+        },
+        "posit_32_0": {
+          "slope": 1.0249714248478696,
+          "intercept": 0.151818177386657
+        },
+        "posit_32_1": {
+          "slope": 1.0187592265353889,
+          "intercept": 0.1408188235350063
+        },
+        "posit_32_2": {
+          "slope": 1.0385814021640178,
+          "intercept": 0.2869482508665594
+        }
+      }
+    }
+  }
+}

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
+from error_feature_utils import DERIVED_STAT_FIELDS, RAW_STAT_FIELDS
 from train_ir_error_model import (
     apply_log_calibrators,
     fit_log_calibrators,
@@ -151,9 +152,14 @@ def feature_index_map(meta: dict[str, object]) -> dict[str, np.ndarray]:
     fmt_desc_dim = format_feat_dim - quant_dim
     if fmt_desc_dim < 0:
         raise ValueError("invalid meta: fmt_desc_dim < 0")
+    raw_stats_dim = 2 * len(RAW_STAT_FIELDS)
+    derived_stats_dim = 2 * len(DERIVED_STAT_FIELDS)
+    if stats_dim < raw_stats_dim + derived_stats_dim:
+        raise ValueError("invalid meta: stats_dim smaller than raw+derived stats")
 
     ir_end = ir_dim
     scalar_end = ir_end + scalar_dim
+    raw_stats_end = scalar_end + raw_stats_dim
     stats_end = scalar_end + stats_dim
     cfg_end = stats_end + cfg_dim
     fmt_desc_end = cfg_end + fmt_desc_dim
@@ -162,6 +168,13 @@ def feature_index_map(meta: dict[str, object]) -> dict[str, np.ndarray]:
     return {
         "ir2vec_only": np.arange(0, ir_end, dtype=np.int64),
         "ir2vec_stats": np.arange(0, stats_end, dtype=np.int64),
+        "raw_only": np.concatenate(
+            [
+                np.arange(0, raw_stats_end, dtype=np.int64),
+                np.arange(cfg_end, all_end, dtype=np.int64),
+            ]
+        ),
+        "raw_plus_derived": np.arange(0, all_end, dtype=np.int64),
         "full_no_quant": np.arange(0, fmt_desc_end, dtype=np.int64),
         "full_quant": np.arange(0, all_end, dtype=np.int64),
     }
@@ -315,7 +328,7 @@ def main() -> None:
     ap.add_argument(
         "--feature-sets",
         default="all",
-        help="comma-separated: ir2vec_only,ir2vec_stats,full_no_quant,full_quant or 'all'",
+        help="comma-separated: ir2vec_only,ir2vec_stats,raw_only,raw_plus_derived,full_no_quant,full_quant or 'all'",
     )
     args = ap.parse_args()
 

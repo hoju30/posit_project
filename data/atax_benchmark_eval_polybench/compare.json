@@ -1,0 +1,60 @@
+{
+  "benchmark": "atax",
+  "ir": "/home/hoju/test/polybench-c-3.2/atax.ll",
+  "rows": 4000,
+  "cols": 4000,
+  "dist_type": 0,
+  "seed": 42,
+  "results": {
+    "fp32": {
+      "pred_rel_err": null,
+      "actual_sum_rel_err": 5.32011e-08,
+      "actual_l2_rel_err": 5.43336e-07
+    },
+    "posit_8_0": {
+      "pred_rel_err": 2.272921905560406,
+      "actual_sum_rel_err": 1.0,
+      "actual_l2_rel_err": 1.0
+    },
+    "posit_8_1": {
+      "pred_rel_err": 0.8696326256944256,
+      "actual_sum_rel_err": 1.0,
+      "actual_l2_rel_err": 1.0
+    },
+    "posit_8_2": {
+      "pred_rel_err": 0.5134866483113517,
+      "actual_sum_rel_err": 1.0,
+      "actual_l2_rel_err": 1.0
+    },
+    "posit_16_0": {
+      "pred_rel_err": 0.18621587881066204,
+      "actual_sum_rel_err": 1.0,
+      "actual_l2_rel_err": 1.0
+    },
+    "posit_16_1": {
+      "pred_rel_err": 0.0870499921744499,
+      "actual_sum_rel_err": 1.0,
+      "actual_l2_rel_err": 1.0
+    },
+    "posit_16_2": {
+      "pred_rel_err": 0.008735023116354981,
+      "actual_sum_rel_err": 0.999922,
+      "actual_l2_rel_err": 0.99993
+    },
+    "posit_32_0": {
+      "pred_rel_err": 0.0007881809698922668,
+      "actual_sum_rel_err": 1.0,
+      "actual_l2_rel_err": 1.0
+    },
+    "posit_32_1": {
+      "pred_rel_err": 2.738704629759261e-06,
+      "actual_sum_rel_err": 0.983453,
+      "actual_l2_rel_err": 0.984128
+    },
+    "posit_32_2": {
+      "pred_rel_err": 1.1821638035481658e-07,
+      "actual_sum_rel_err": 0.000185395,
+      "actual_l2_rel_err": 0.00169863
+    }
+  }
+}

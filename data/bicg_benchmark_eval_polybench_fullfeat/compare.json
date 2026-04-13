@@ -1,0 +1,58 @@
+{
+  "benchmark": "bicg",
+  "ir": "/home/hoju/test/polybench-c-3.2/bicg.ll",
+  "rows": 4000,
+  "cols": 4000,
+  "results": {
+    "fp32": {
+      "pred_rel_err": null,
+      "actual_sum_rel_err": 1.8756e-08,
+      "actual_l2_rel_err": 5.81057e-07
+    },
+    "posit_8_0": {
+      "pred_rel_err": 2.3367625560489977,
+      "actual_sum_rel_err": 1.0,
+      "actual_l2_rel_err": 1.0
+    },
+    "posit_8_1": {
+      "pred_rel_err": 1.1962046537666629,
+      "actual_sum_rel_err": 1.0,
+      "actual_l2_rel_err": 1.0
+    },
+    "posit_8_2": {
+      "pred_rel_err": 0.6607112678479138,
+      "actual_sum_rel_err": 0.999537,
+      "actual_l2_rel_err": 0.999627
+    },
+    "posit_16_0": {
+      "pred_rel_err": 0.2743677640495849,
+      "actual_sum_rel_err": 1.0,
+      "actual_l2_rel_err": 1.0
+    },
+    "posit_16_1": {
+      "pred_rel_err": 0.09982874366881887,
+      "actual_sum_rel_err": 0.99841,
+      "actual_l2_rel_err": 0.998579
+    },
+    "posit_16_2": {
+      "pred_rel_err": 0.01021792137040433,
+      "actual_sum_rel_err": 0.964758,
+      "actual_l2_rel_err": 0.964659
+    },
+    "posit_32_0": {
+      "pred_rel_err": 0.0014360863121019847,
+      "actual_sum_rel_err": 0.99354,
+      "actual_l2_rel_err": 0.994349
+    },
+    "posit_32_1": {
+      "pred_rel_err": 3.6603375742859906e-06,
+      "actual_sum_rel_err": 0.00142371,
+      "actual_l2_rel_err": 0.0130191
+    },
+    "posit_32_2": {
+      "pred_rel_err": 1.681216150695651e-07,
+      "actual_sum_rel_err": 5.74944e-09,
+      "actual_l2_rel_err": 5.94688e-06
+    }
+  }
+}

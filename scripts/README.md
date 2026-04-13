@@ -29,14 +29,25 @@
    - 不含 CFG
 
 4. `train_ir_error_model.py`  
-訓練 `models/ir2vec_error_predictor.joblib`。  
-目前是：
+   訓練 `models/ir2vec_error_predictor.joblib`。  
+   目前是：
    - 每個 posit format 各自一顆 model
    - 內建 `selective calibration`
 
-5. `predict_ir_errors.py`  
-對單一 IR 預測全部 posit format 的誤差。  
-會自動讀取 model bundle 內的 selective calibration 設定。
+5. `train_ir_error_model_xgb.py`
+   訓練 `models/ir2vec_error_predictor_xgb.joblib`。  
+   目前主線採用的較佳參數是：
+   - `n_estimators=600`
+   - `max_depth=4`
+   - `learning_rate=0.02`
+   - `subsample=0.8`
+   - `colsample_bytree=0.8`
+   - `reg_lambda=4.0`
+   - `min_child_weight=5.0`
+
+6. `predict_ir_errors.py`  
+   對單一 IR 預測全部 posit format 的誤差。  
+   會自動讀取 model bundle 內的 selective calibration 設定。
 
 ## 評估與繪圖
 
@@ -48,13 +59,34 @@
   - calibrated / selective calibrated 版本
 
 - `eval_feature_ablation_current.py`  
-對目前模型做 feature ablation。  
-目前主要比較：
+  對目前模型做 feature ablation。  
+  目前主要比較：
   - `ir2vec_only`
   - `ir2vec_stats`
   - `full_no_quant`
   - `full_quant`
 
+- `eval_in_domain_xgb.py`
+  比較 RandomForest 與 XGBoost 的 in-domain 表現。
+
+- `tune_xgb_in_domain.py`
+  掃一批 XGBoost 參數組合，輸出 `summary.json` 與 `candidates.csv`。
+
+- `plot_benchmark_bar_png.py`
+  把 benchmark `compare.csv` 畫成 `pred vs actual` 長條圖，可調大字體，也可把數值直接標在圖上。
+
+- `plot_benchmark_compare_png.py`
+  把 benchmark `compare.csv` 畫成散點圖，方便看 `pred` 與 `actual` 是否落在同一量級。
+
+## Benchmark 驗證
+
+- `eval_atax_benchmark.py`
+  用真正的 PolyBench `atax.c` 產生 benchmark 真值，再呼叫 `predict_ir_errors.py` 對同一份 LLVM IR 做推論，最後輸出 `actual/pred/compare` 檔。
+
+- `eval_bicg_benchmark.py`
+  做法同上，對 `bicg` 產生 benchmark 真值與 prediction 對照。
+
+這兩支都會另外輸出 `format_features.json`，讓 benchmark 推論也能真的吃到 quantization-aware features。
 
 ## Per-loop / MLIR 主線
 
