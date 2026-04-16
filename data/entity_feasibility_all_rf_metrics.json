@@ -1,0 +1,82 @@
+{
+  "dataset": "/home/hoju/test/posit_test/data/generated_entity_label_dataset_all.csv",
+  "rows_total": 2925,
+  "train_rows": 2340,
+  "test_rows": 585,
+  "train_apps": 140,
+  "test_apps": 35,
+  "positive_rate_total": 0.582905982905983,
+  "positive_rate_train": 0.5837606837606838,
+  "positive_rate_test": 0.5794871794871795,
+  "model": "RandomForestClassifier",
+  "train_config": {
+    "n_estimators": 400,
+    "max_depth": 12,
+    "random_state": 0,
+    "class_weight": "balanced_subsample"
+  },
+  "holdout": {
+    "accuracy": 0.9452991452991453,
+    "f1": 0.9529411764705882,
+    "confusion_matrix": [
+      [
+        229,
+        17
+      ],
+      [
+        15,
+        324
+      ]
+    ],
+    "classification_report": {
+      "0": {
+        "precision": 0.9385245901639344,
+        "recall": 0.9308943089430894,
+        "f1-score": 0.9346938775510204,
+        "support": 246.0
+      },
+      "1": {
+        "precision": 0.9501466275659824,
+        "recall": 0.9557522123893806,
+        "f1-score": 0.9529411764705882,
+        "support": 339.0
+      },
+      "accuracy": 0.9452991452991453,
+      "macro avg": {
+        "precision": 0.9443356088649584,
+        "recall": 0.943323260666235,
+        "f1-score": 0.9438175270108042,
+        "support": 585.0
+      },
+      "weighted avg": {
+        "precision": 0.9452594118379417,
+        "recall": 0.9452991452991453,
+        "f1-score": 0.9452679533351801,
+        "support": 585.0
+      }
+    },
+    "roc_auc": 0.9910904861261002
+  },
+  "feature_columns": {
+    "numeric": [
+      "use_count",
+      "is_loop_carried",
+      "is_output_related",
+      "fanout",
+      "reduction_depth",
+      "distance_to_output",
+      "same_loop_neighbor_count",
+      "num_arith_users",
+      "format_n",
+      "format_es"
+    ],
+    "categorical": [
+      "family",
+      "role",
+      "def_opcode",
+      "function",
+      "bb",
+      "format"
+    ]
+  }
+}

@@ -6,6 +6,12 @@ venv/
 models/
 *.joblib
 
+# generated evaluators / compiled app artifacts
+bin/generated_app_accumulator_eval
+bin/generated_app_reduction_intermediate_eval
+generated_apps/compiled_*/
+generated_apps/test_compiled/
+
 # python cache
 __pycache__/
 scripts/__pycache__/

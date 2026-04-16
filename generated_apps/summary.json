@@ -1,0 +1,17 @@
+{
+  "out_dir": "/home/hoju/test/posit_test/generated_apps",
+  "family_count": 8,
+  "variants_per_family": 25,
+  "total_apps": 200,
+  "families": [
+    "sum_reduce",
+    "dot_product",
+    "weighted_sum",
+    "prefix_recurrence",
+    "ema_recurrence",
+    "matvec_like",
+    "two_stage_reduce",
+    "stencil1d_like"
+  ],
+  "manifest_csv": "/home/hoju/test/posit_test/generated_apps/apps_manifest.csv"
+}

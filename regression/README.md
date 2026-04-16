@@ -20,6 +20,22 @@
   - `current-es excess`：`upper/lower_excess_current_es`
   - quant features：`oor_ratio/clip_high_ratio/clip_low_ratio/rel_qerr_mean/zero_after_quant_ratio/unique_ratio`
 
+另外，專案目前也開始準備 `variable-level mixed-precision` 路線：
+- whole-app LLVM IR entity 抽取腳本：[scripts/extract_entity_features.py](/home/hoju/test/posit_test/scripts/extract_entity_features.py)
+- generated-app actual label 回填腳本：[scripts/fill_entity_labels.py](/home/hoju/test/posit_test/scripts/fill_entity_labels.py)
+- 目前先抓：
+  - `accumulator`
+  - `loop_carried_state`
+  - `reduction_intermediate`
+- 目前先抽：
+  - entity-local：`role / def_opcode / use_count / is_loop_carried / is_output_related`
+  - graph-derived：`fanout / reduction_depth / distance_to_output / same_loop_neighbor_count / num_arith_users`
+- 目前 first cut 的 actual label 只先做 `accumulator-only`：
+  - 其他 entity 固定 `fp64`
+  - target 是 whole-app `actual_whole_app_rel_err`
+  - binary label 是 `is_feasible_under_tol = (actual_whole_app_rel_err <= 1e-3)`
+  - 目前全量 generated-app corpus 中，這條路已可直接回填 `150 apps`
+
 目前正式特徵維度是：
 - `359 = 300 IR2Vec + 43 shared + 16 format-aware`
 

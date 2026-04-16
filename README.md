@@ -32,6 +32,58 @@
 - `format-aware features`：`current-es excess`（`x/y_upper_excess_current_es`、`x/y_lower_excess_current_es`）+ quant features（`oor_ratio/clip_high_ratio/clip_low_ratio/rel_qerr_mean/zero_after_quant_ratio/unique_ratio`）。
 - raw stats 與 quant features 的 C++ 實作在 [stats.hpp](/home/hoju/test/posit_test/src/stats.hpp)；derived/current-es feature 的 Python 實作在 [error_feature_utils.py](/home/hoju/test/posit_test/scripts/error_feature_utils.py)；組成最終訓練向量的位置在 [build_ml_dataset_ir_errors.py](/home/hoju/test/posit_test/scripts/build_ml_dataset_ir_errors.py)。
 
+### Variable-level mixed-precision（草稿）
+- 目前主線仍是 loop / app-level error prediction。
+- whole-app source corpus 目前可由 [generate_source_apps.py](/home/hoju/test/posit_test/scripts/generate_source_apps.py) 批量產生：
+  - `8 families`
+  - `25 variants / family`
+  - 共 `200 apps`
+- 新增 [extract_entity_features.py](/home/hoju/test/posit_test/scripts/extract_entity_features.py) 作為 variable-level 路線的第一步：直接對整個 app 的 LLVM IR 抽 entity。
+- 目前先抓三類 entity：
+  - `accumulator`
+  - `loop_carried_state`
+  - `reduction_intermediate`
+- 目前先輸出這些 feature：
+  - entity-local：`role / def_opcode / use_count / is_loop_carried / is_output_related`
+  - graph-derived：`fanout / reduction_depth / distance_to_output / same_loop_neighbor_count / num_arith_users`
+- 其中 `same_loop_neighbor_count` 在沒有顯式 loop analysis 前，先用 same-function def-use neighbors 近似。
+- entity label schema 目前已改成 whole-app binary classification 命名：
+  - `entity_id`
+  - `format`
+  - `actual_whole_app_rel_err`
+  - `is_feasible_under_tol`
+  - `margin_to_tol`
+- 目前已補上 generated-app accumulator evaluator：
+  - [compile_generated_apps.py](/home/hoju/test/posit_test/scripts/compile_generated_apps.py)：把 generated apps 編成 LLVM IR，並產生 entity feature / skeleton label CSV。
+  - [fill_entity_labels.py](/home/hoju/test/posit_test/scripts/fill_entity_labels.py)：對 `generated_apps` 中「只有一個 accumulator entity」的 app，回填
+    - `actual_whole_app_rel_err`
+    - `is_feasible_under_tol`
+    - `margin_to_tol`
+  - [generated_app_accumulator_eval.cpp](/home/hoju/test/posit_test/src/generated_app_accumulator_eval.cpp)：目前 actual label 的 source-level evaluator，先支援 accumulator-only。
+  - 目前全量 `200 apps` 中，這條 first cut 已能直接回填 `150 apps`；`ema_recurrence` 與 `matvec_like` 仍先保留 skeleton。
+  - [train_entity_feasibility_model.py](/home/hoju/test/posit_test/scripts/train_entity_feasibility_model.py)：用合併後的 accumulator label dataset 訓練第一版 binary feasibility classifier。
+  - [train_entity_feasibility_model_xgb.py](/home/hoju/test/posit_test/scripts/train_entity_feasibility_model_xgb.py)：XGBoost 版本的 accumulator feasibility classifier。
+  - 現在三類 entity 都已有獨立 dataset：
+    - `data/generated_entity_label_dataset_accum.csv`
+    - `data/generated_entity_label_dataset_lcs.csv`
+    - `data/generated_entity_label_dataset_ri.csv`
+  - 若要做 unified entity model，可用 [merge_role_entity_datasets.py](/home/hoju/test/posit_test/scripts/merge_role_entity_datasets.py) 合成：
+    - `data/generated_entity_label_dataset_all.csv`
+  - 目前 unified dataset 一共有 `2925` rows，已訓練：
+    - `models/entity_feasibility_all_rf.joblib`
+    - `models/entity_feasibility_all_xgb.joblib`
+  - unified holdout：
+    - RF：`accuracy=0.945299`, `f1=0.952941`, `roc_auc=0.991090`
+    - XGB：`accuracy=0.945299`, `f1=0.952941`, `roc_auc=0.990035`
+  - 也已補上 unified feature importance / ablation：
+    - [eval_entity_feasibility_unified_features.py](/home/hoju/test/posit_test/scripts/eval_entity_feasibility_unified_features.py)
+    - 結果在：
+      - `data/eval_entity_feasibility_unified_features/`
+    - 目前觀察：
+      - `format` 是最強訊號
+      - `context` 與 `graph` 次之
+      - 拿掉 `format` 後，模型表現會明顯崩落
+
 ## 流程（啟用 venv，於專案根目錄）
 
 ### 1) 生成資料集（C++）
